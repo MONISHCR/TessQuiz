@@ -1,0 +1,45 @@
+Question ID: 28103
+Question: Which application of VAEs involves handling missing data?
+Options:
+a: Image Generation
+b: Data Imputation
+c: Anomaly Detection
+d: Dimensionality Reduction
+Correct Option: b
+
+Question ID: 28104
+Question: What kind of data can VAEs be applied to for anomaly detection?
+Options:
+a: Only images
+b: Only structured data
+c: Normal distributions
+d: Various types of data, including images and sensor data
+Correct Option: d
+
+Question ID: 28108
+Question: In which field do VAEs assist with generating new designs?
+Options:
+a: Physics
+b: Economics
+c: Creative fields like fashion and architecture
+d: Medicine
+Correct Option: c
+
+Question ID: 28102
+Question: What is the output of the VAE's decoder when given a latent vector?
+Options:
+a: Parameters of the latent distribution
+b: Noise signal
+c: New data resembling the training data
+d: Mean and variance values
+Correct Option: c
+
+Question ID: 28105
+Question: In what application do VAEs help to generate new molecular structures?
+Options:
+a: Voice synthesis
+b: Drug discovery
+c: Text translation
+d: Data visualization
+Correct Option: b
+

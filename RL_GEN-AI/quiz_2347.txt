@@ -1,0 +1,36 @@
+Question ID: 27829
+Question: What is the purpose of the record array in the Softmax selection policy?
+Options:
+a: To store probabilities of each arm
+b: To keep track of the number of pulls and average rewards
+c: To define the temperature parameter
+d: To calculate new rewards for each action
+Correct Option: b
+
+Question ID: 27828
+Question: What does a high temperature parameter (tau) in the Softmax policy promote?
+Options:
+a: Exploitation
+b: Exploration
+c: Both equally
+d: None of the above
+Correct Option: b
+
+Question ID: 27827
+Question: What does the Softmax selection policy primarily address?
+Options:
+a: Exploration-exploitation trade-off
+b: Learning rate adjustment
+c: State transition probabilities
+d: Reward shaping
+Correct Option: a
+
+Question ID: 27831
+Question: What is the output of the softmax function?
+Options:
+a: An estimated reward value
+b: A probability distribution
+c: A running average reward
+d: A count of arm pulls
+Correct Option: b
+

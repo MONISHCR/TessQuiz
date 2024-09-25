@@ -1,0 +1,45 @@
+Question ID: 27270
+Question: What does the term 'exploitation' refer to in the multi-armed bandit problem?
+Options:
+a: Trying out different machines.
+b: Choosing the action with the highest average reward.
+c: Randomly selecting any option.
+d: Avoiding familiar choices.
+Correct Option: b
+
+Question ID: 27268
+Question: What is the challenge faced when using the greedy strategy?
+Options:
+a: It always guarantees the highest reward.
+b: It may miss out on untested machines that could yield higher rewards.
+c: It requires too much computation.
+d: It can only be used once.
+Correct Option: b
+
+Question ID: 27267
+Question: What does the softmax selection policy do?
+Options:
+a: Selects the best arm every time.
+b: Assigns a probability to each action based on expected rewards.
+c: Ignores the average payout.
+d: Only explores the best machine.
+Correct Option: b
+
+Question ID: 27263
+Question: What is the main objective of the multi-armed bandit problem?
+Options:
+a: To minimize risks in decision-making.
+b: To maximize cumulative rewards over time.
+c: To explore all possible options.
+d: To ensure equal exploration of all machines.
+Correct Option: b
+
+Question ID: 27266
+Question: In the epsilon-greedy strategy, what does epsilon represent?
+Options:
+a: The number of actions available.
+b: The probability of exploiting the best arm.
+c: The probability of selecting a random lever.
+d: The total number of rewards.
+Correct Option: c
+

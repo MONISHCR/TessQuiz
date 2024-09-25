@@ -1,0 +1,36 @@
+Question ID: 28027
+Question: In the context of the problem, what does a reward indicate?
+Options:
+a: Ad impressions
+b: Ad clicks
+c: Cost per click
+d: User engagement
+Correct Option: b
+
+Question ID: 28021
+Question: What is the output layer of the neural network used for?
+Options:
+a: Choosing the current state
+b: Predicting reward for each action
+c: Initializing the reward distribution
+d: Updating the environment state
+Correct Option: b
+
+Question ID: 28022
+Question: What function is used to convert the predicted rewards into a probability distribution over actions?
+Options:
+a: Softmax
+b: ReLU
+c: Sigmoid
+d: Tanh
+Correct Option: a
+
+Question ID: 28019
+Question: What does the contextual bandit problem incorporate to help make informed decisions?
+Options:
+a: Randomization
+b: Context
+c: Reinforcement
+d: Prediction
+Correct Option: b
+

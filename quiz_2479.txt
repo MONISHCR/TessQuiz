@@ -1,0 +1,45 @@
+Question ID: 26691
+Question: What does the IoT functional block diagram NOT include?
+Options:
+a: Devices
+b: User interfaces
+c: Communication
+d: Management
+Correct Option: b
+
+Question ID: 26695
+Question: What is a characteristic of the Exclusive pair communication model?
+Options:
+a: Stateless connection
+b: Unidirectional communication
+c: Bidirectional communication
+d: One-time connection
+Correct Option: c
+
+Question ID: 26698
+Question: Which API is suitable for real-time applications due to its full-duplex capability?
+Options:
+a: REST-based API
+b: Queue-based API
+c: Web Socket API
+d: Request-Response API
+Correct Option: c
+
+Question ID: 26694
+Question: Which type of API focuses on system resources and adheres to the request-response model?
+Options:
+a: Web Socket API
+b: REST-based API
+c: Publish-Subscribe API
+d: Queue-based API
+Correct Option: b
+
+Question ID: 26697
+Question: What is the main role of the security block in an IoT system?
+Options:
+a: To perform sensing
+b: To handle management tasks
+c: To ensure data security
+d: To publish data
+Correct Option: c
+

@@ -1,0 +1,45 @@
+Question ID: 27242
+Question: Which application involves LLMs automatically translating text between languages?
+Options:
+a: Text Summarization
+b: Machine Translation
+c: Text Generation
+d: Natural Language Understanding
+Correct Option: b
+
+Question ID: 27244
+Question: What does fine-tuning typically leverage from the pretraining phase?
+Options:
+a: New language syntax
+b: General language knowledge
+c: Domain-specific vocabulary
+d: Reinforcement strategies
+Correct Option: b
+
+Question ID: 27247
+Question: What do LLMs use to generate code snippets based on natural language prompts?
+Options:
+a: Text Summarization
+b: Content Creation
+c: Code Generation and Completion
+d: Natural Language Processing
+Correct Option: c
+
+Question ID: 27248
+Question: Which of the following applications uses LLMs to analyze sentiment in text?
+Options:
+a: Text Classification
+b: Content Creation
+c: Machine Translation
+d: Sentiment Analysis
+Correct Option: d
+
+Question ID: 27246
+Question: What type of learning is generally used during the fine-tuning of LLMs?
+Options:
+a: Unsupervised learning
+b: Reinforcement learning
+c: Supervised learning
+d: Self-supervised learning
+Correct Option: c
+

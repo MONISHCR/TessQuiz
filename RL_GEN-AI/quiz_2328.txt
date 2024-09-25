@@ -1,0 +1,45 @@
+Question ID: 27234
+Question: What is fine-tuning primarily used for?
+Options:
+a: Collecting data
+b: Model optimization
+c: Specializing in specific tasks
+d: Tokenizing text
+Correct Option: c
+
+Question ID: 27231
+Question: What does the Masked Language Modeling objective focus on?
+Options:
+a: Predicting the next word
+b: Predicting a missing (masked) word
+c: Classifying text sentiment
+d: Generating summaries
+Correct Option: b
+
+Question ID: 27232
+Question: What is the primary learning method used during pretraining of LLMs?
+Options:
+a: Supervised learning
+b: Unsupervised learning
+c: Reinforcement learning
+d: Transfer learning
+Correct Option: b
+
+Question ID: 27235
+Question: Which technique helps update the model's weights during training?
+Options:
+a: Cross-entropy loss
+b: Gradient descent optimization
+c: Tokenization strategy
+d: Data normalization
+Correct Option: b
+
+Question ID: 27230
+Question: During which phase does the model learn to predict the next word in a sequence?
+Options:
+a: Fine-Tuning
+b: Pretraining
+c: Tokenization
+d: Optimization
+Correct Option: b
+

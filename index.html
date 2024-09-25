@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vidyā</title>
+    <!-- Favicon -->
+    <link rel="icon" href="ai-1.jpg" type="image/x-icon">
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+
+    <style>
+        body {
+            background: linear-gradient(to right, #68c1cb, #508590);
+            color: #333;
+            font-family: 'Arial', sans-serif;
+            animation: fadeIn 2s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .navbar {
+            background-color: rgba(44, 62, 80, 0.8) !important;
+            transition: background-color 0.5s ease;
+        }
+
+        .navbar:hover {
+            background-color: rgba(52, 73, 94, 0.8) !important;
+        }
+
+        .navbar-brand,
+        .nav-link {
+            color: #ffffff !important;
+            transition: color 0.5s ease;
+        }
+
+        .navbar-brand:hover,
+        .nav-link:hover {
+            color: #3498db !important;
+        }
+
+        .btn-custom {
+            background-color: #27ae60;
+            border-color: #27ae60;
+            color: #ffffff;
+            transition: background-color 0.5s ease, border-color 0.5s ease;
+        }
+
+        .btn-custom:hover {
+            background-color: #219d54;
+            border-color: #219d54;
+        }
+
+        .welcome-section {
+            background: rgba(236, 240, 241, 0.8);
+            padding: 50px 0;
+            text-align: center;
+            animation: slideIn 1s ease-in-out;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        @keyframes slideIn {
+            from { transform: translateY(-100px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .footer {
+            background-color: #e74c3c;
+            color: #ffffff;
+            padding: 20px 0;
+            text-align: center;
+            animation: fadeIn 2s ease-in-out;
+        }
+
+        .back-to-home {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+        }
+
+        section h2 {
+            margin-top: 20px;
+            color: #ffffff;
+            animation: fadeInUp 1s ease-in-out;
+        }
+
+        @keyframes fadeInUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        section button {
+            transition: transform 0.2s ease-in-out;
+        }
+
+        section button:hover {
+            transform: scale(1.05);
+        }
+
+        .btn-primary a {
+            text-decoration: none;
+            color: #ffffff;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.8);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            margin-top: 20px;
+        }
+
+        .nav-item .nav-link {
+            margin: 5px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container">
+            <a class="navbar-brand" href="#">Student's Hub</a>
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ml-auto">
+                    <li class="nav-item">
+                        <a class="nav-link btn btn-custom" href="#welcome">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link btn btn-custom" href="cppmod1.zip" download>C++ Module 1</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link btn btn-custom" href="cppmod2.zip" download>C++ Module 2</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link btn btn-custom" href="https://drive.google.com/embeddedfolderview?id=14IHTVEVz3qDEUEv-yEAf9qYAFqQPcTOZ#grid" target="_blank">3-2 Drive</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link btn btn-custom" href="https://drive.google.com/embeddedfolderview?id=16UokwlV5ZptcTqzGuJHzQ8sFXcnPrK84#grid" target="_blank">3-1 Drive</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link btn btn-custom" href="https://drive.google.com/embeddedfolderview?id=1kOXJluBVMAo86MooGbn8w5y_MnSIoaej#grid" target="_blank">2-2 Drive</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link btn btn-custom" href="https://drive.google.com/embeddedfolderview?id=1MlhwNAzQj4ZWQHoIjo22PTb_11ci4iY5#grid" target="_blank">2-1 Drive</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link btn btn-custom" href="https://drive.google.com/embeddedfolderview?id=1M0B3Ei0ja97wdoAd7SKCcFXUAcfp4ifh#grid" target="_blank">1-1 & 1-2 Drive</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link btn btn-custom" href="#attendance">FS Attendance</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link btn btn-custom" href="#tesseract">Tesseract</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link btn btn-custom" href="#tesellator">Tesellator</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link btn btn-custom" href="https://youtube.com/playlist?list=PLOgfabpOYdb863OYCTwFz0o53tBQuY-rO&feature=shared" target="_blank">Tesseract Recording</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Welcome Section -->
+    <section id="welcome" class="welcome-section">
+        <div class="container">
+            <h1>Welcome to Student's Hub of KMIT</h1>
+        </div>
+    </section>
+
+    <!-- Content Sections -->
+    <div class="container mt-4">
+        <!-- Drive Sections -->
+        <section id="drive-3-2" class="mb-4">
+            <h2>3-2 Drive</h2>
+            <button class="btn btn-primary" onclick="window.open('https://drive.google.com/embeddedfolderview?id=14IHTVEVz3qDEUEv-yEAf9qYAFqQPcTOZ#grid', '_blank')">Open 3-2 Drive</button>
+        </section>
+
+        <section id="cpp-mod-1" class="mb-4">
+            <h2>C++ Module 1</h2>
+            <button class="btn btn-primary"><a href="cppmod1.zip" class="text-white" download>Download C++ Module 1 Notes</a></button>
+        </section>
+
+        <section id="cpp-mod-2" class="mb-4">
+            <h2>C++ Module 2</h2>
+            <button class="btn btn-primary"><a href="cppmod2.zip" class="text-white" download>Download C++ Module 2 Notes</a></button>
+        </section>
+
+        <section id="drive-3-1" class="mb-4">
+            <h2>3-1 Drive</h2>
+            <button class="btn btn-primary" onclick="window.open('https://drive.google.com/embeddedfolderview?id=16UokwlV5ZptcTqzGuJHzQ8sFXcnPrK84#grid', '_blank')">Open 3-1 Drive</button>
+        </section>
+
+        <section id="drive-2-2" class="mb-4">
+            <h2>2-2 Drive</h2>
+            <button class="btn btn-primary" onclick="window.open('https://drive.google.com/embeddedfolderview?id=1kOXJluBVMAo86MooGbn8w5y_MnSIoaej#grid', '_blank')">Open 2-2 Drive</button>
+        </section>
+
+        <section id="drive-2-1" class="mb-4">
+            <h2>2-1 Drive</h2>
+            <button class="btn btn-primary" onclick="window.open('https://drive.google.com/embeddedfolderview?id=1MlhwNAzQj4ZWQHoIjo22PTb_11ci4iY5#grid', '_blank')">Open 2-1 Drive</button>
+        </section>
+
+        <section id="drive-1-1-2" class="mb-4">
+            <h2>1-1 & 1-2 Drive</h2>
+            <button class="btn btn-primary" onclick="window.open('https://drive.google.com/embeddedfolderview?id=1M0B3Ei0ja97wdoAd7SKCcFXUAcfp4ifh#grid', '_blank')">Open 1-1 & 1-2 Drive</button>
+        </section>
+
+        <section id="attendance" class="mb-4">
+            <h2>FS Attendance</h2>
+            <button class="btn btn-primary"><a href="https://fs1attendence.vercel.app/" class="text-white">FS Attendance</a></button>
+        </section>
+
+        <section id="tesseract" class="mb-4">
+            <h2>Tesseract</h2>
+            <button class="btn btn-primary"><a href="https://tesseractonline.com" class="text-white">Visit Tesseract</a></button>
+        </section>
+
+        <section id="tesellator" class="mb-4">
+            <h2>Tesellator</h2>
+            <button class="btn btn-primary"><a href="http://kmitonline.com/student/dashboard.php" class="text-white">Visit Tesellator</a></button>
+        </section>
+
+        <section id="tesseract-recording" class="mb-4">
+            <h2>Tesseract Recording</h2>
+            <button class="btn btn-primary" onclick="window.open('https://youtube.com/playlist?list=PLOgfabpOYdb863OYCTwFz0o53tBQuY-rO&feature=shared', '_blank')">Open Tesseract Recording</button>
+        </section>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2024 @Monish. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS (Optional, for certain components) -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+
+</html>

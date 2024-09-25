@@ -1,0 +1,45 @@
+Question ID: 28010
+Question: Which function in PyTorch is used to automatically compute gradients?
+Options:
+a: torch.gradient()
+b: torch.auto_grad()
+c: loss.backward()
+d: torch.compute_gradients()
+Correct Option: c
+
+Question ID: 28018
+Question: In the training loop example, what does the line 'optimizer.zero_grad()' do?
+Options:
+a: Resets the loss
+b: Updates the model weights
+c: Resets the gradients
+d: Calculates the loss
+Correct Option: c
+
+Question ID: 28016
+Question: How do you create a custom network architecture in PyTorch?
+Options:
+a: By using the Sequential class
+b: By subclassing torch.nn.Module
+c: By defining numpy arrays
+d: By using pre-defined models only
+Correct Option: b
+
+Question ID: 28015
+Question: What does the 'requires_grad=True' argument do in PyTorch?
+Options:
+a: It disables gradient computation
+b: It tracks and computes gradients
+c: It initializes parameters
+d: It defines the model architecture
+Correct Option: b
+
+Question ID: 28009
+Question: What is a tensor in PyTorch?
+Options:
+a: A 1D array only
+b: A data structure similar to NumPy arrays with GPU acceleration
+c: A programming language
+d: A type of neural network layer
+Correct Option: b
+

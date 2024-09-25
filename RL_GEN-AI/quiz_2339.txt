@@ -1,0 +1,36 @@
+Question ID: 26619
+Question: Which command starts an episode in an OpenAI Gym environment?
+Options:
+a: begin()
+b: start()
+c: reset()
+d: init()
+Correct Option: c
+
+Question ID: 26616
+Question: How can you install the OpenAI Gym library?
+Options:
+a: Use npm install gym
+b: Use pip install gym
+c: Download it manually from GitHub
+d: It's pre-installed with Python
+Correct Option: b
+
+Question ID: 26620
+Question: What functionality does the render() command provide in OpenAI Gym?
+Options:
+a: Resets the environment
+b: Displays the environment visualization
+c: Ends the episode
+d: Saves the environment state
+Correct Option: b
+
+Question ID: 26613
+Question: Which command is used to reset the environment in OpenAI Gym?
+Options:
+a: step()
+b: initialize()
+c: reset()
+d: start()
+Correct Option: c
+

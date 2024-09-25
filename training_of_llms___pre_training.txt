@@ -1,0 +1,45 @@
+Question ID: 27237
+Question: Which of the following is NOT a goal of pretraining?
+Options:
+a: Learning general knowledge
+b: Developing a wide-ranging understanding of language
+c: Focusing on specific downstream tasks
+d: Acquiring knowledge about grammar and syntax
+Correct Option: c
+
+Question ID: 27235
+Question: Which technique helps update the model's weights during training?
+Options:
+a: Cross-entropy loss
+b: Gradient descent optimization
+c: Tokenization strategy
+d: Data normalization
+Correct Option: b
+
+Question ID: 27236
+Question: What type of datasets are used in pretraining LLMs?
+Options:
+a: Labeled datasets
+b: Private datasets
+c: Public datasets with raw text
+d: Small sample datasets
+Correct Option: c
+
+Question ID: 27231
+Question: What does the Masked Language Modeling objective focus on?
+Options:
+a: Predicting the next word
+b: Predicting a missing (masked) word
+c: Classifying text sentiment
+d: Generating summaries
+Correct Option: b
+
+Question ID: 27234
+Question: What is fine-tuning primarily used for?
+Options:
+a: Collecting data
+b: Model optimization
+c: Specializing in specific tasks
+d: Tokenizing text
+Correct Option: c
+

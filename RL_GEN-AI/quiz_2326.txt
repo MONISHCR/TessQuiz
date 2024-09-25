@@ -1,0 +1,45 @@
+Question ID: 27124
+Question: Which of the following is a use case for deep learning in healthcare?
+Options:
+a: Creating artwork
+b: Enhancing medical imaging
+c: Generating music
+d: Filtering spam emails
+Correct Option: b
+
+Question ID: 27119
+Question: Who introduced Generative Adversarial Networks (GANs)?
+Options:
+a: Geoffrey Hinton
+b: Ian Goodfellow
+c: Yann LeCun
+d: Vaswani et al.
+Correct Option: b
+
+Question ID: 27117
+Question: What does Generative AI primarily focus on?
+Options:
+a: Predicting labels for data
+b: Generating new content
+c: Filtering spam emails
+d: Detecting fraud
+Correct Option: b
+
+Question ID: 27123
+Question: What do Variational Autoencoders learn to create?
+Options:
+a: Anomalies
+b: Latent representations
+c: Spam filters
+d: Supervised learning models
+Correct Option: b
+
+Question ID: 27118
+Question: Which architecture significantly advanced natural language processing?
+Options:
+a: Autoencoders
+b: GANs
+c: Transformers
+d: Deep Belief Networks
+Correct Option: c
+

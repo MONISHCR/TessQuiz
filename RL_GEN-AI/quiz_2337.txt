@@ -1,0 +1,45 @@
+Question ID: 26181
+Question: Which term describes a strategy that the agent employs to determine which action to take?
+Options:
+a: Value Function
+b: State
+c: Action
+d: Policy
+Correct Option: d
+
+Question ID: 26186
+Question: What characterizes the data interaction in Deep Learning?
+Options:
+a: Dynamic interaction with the environment
+b: Learning from a fixed dataset
+c: Feedback received through rewards
+d: Iterative decision-making process
+Correct Option: b
+
+Question ID: 26177
+Question: What is the primary focus of Reinforcement Learning (RL)?
+Options:
+a: Supervised learning with known labels
+b: Making decisions through interaction with an environment
+c: Automatic feature extraction from raw data
+d: Classifying images into predefined categories
+Correct Option: b
+
+Question ID: 26183
+Question: In reinforcement learning, what does a 'Value Function' estimate?
+Options:
+a: The immediate feedback from actions
+b: The expected cumulative reward from a state
+c: The actions available to the agent
+d: The current condition of the environment
+Correct Option: b
+
+Question ID: 26179
+Question: What describes the 'Agent' in the context of reinforcement learning?
+Options:
+a: The strategy used to define actions
+b: The external system interacting with the agent
+c: The learner or decision-maker
+d: The feedback signal received from the environment
+Correct Option: c
+

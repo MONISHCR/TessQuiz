@@ -1,0 +1,36 @@
+Question ID: 26701
+Question: What does WSN stand for?
+Options:
+a: Wireless Sensor Network
+b: Wired Signal Network
+c: Wireless System Node
+d: Wired Sensor Node
+Correct Option: a
+
+Question ID: 26704
+Question: What type of data is characterized by high volume, velocity, and variety?
+Options:
+a: Linear Data
+b: Traditional Data
+c: Big Data
+d: Personal Data
+Correct Option: c
+
+Question ID: 26702
+Question: Which of the following is a benefit of cloud computing?
+Options:
+a: Limited access to resources
+b: On-demand computing resources
+c: High upfront hardware costs
+d: Requires constant provider interaction
+Correct Option: b
+
+Question ID: 26706
+Question: Which technology is primarily used for monitoring weather conditions?
+Options:
+a: Cloud Computing
+b: Big Data Analytics
+c: Wireless Sensor Networks
+d: Embedded Systems
+Correct Option: c
+

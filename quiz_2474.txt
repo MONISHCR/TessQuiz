@@ -1,0 +1,45 @@
+Question ID: 26643
+Question: What is a unique identity in the context of IoT devices?
+Options:
+a: A common name for devices.
+b: An optional identifier.
+c: A distinct identifier like an IP address.
+d: A description of the device's function.
+Correct Option: c
+
+Question ID: 26641
+Question: What is the definition of IoT?
+Options:
+a: A static network of devices.
+b: A global network with self-configuring capabilities.
+c: A type of social media platform.
+d: A traditional computing network.
+Correct Option: b
+
+Question ID: 26645
+Question: What do IoT devices use to collect data?
+Options:
+a: Internet only.
+b: Remote sensors and interfaces.
+c: Human input solely.
+d: Random data sources.
+Correct Option: b
+
+Question ID: 26650
+Question: What is a characteristic of IoT devices in terms of communication?
+Options:
+a: They do not communicate.
+b: They can only communicate with humans.
+c: They are integrated into an information network.
+d: They only use wired connections.
+Correct Option: c
+
+Question ID: 26649
+Question: What enhances IoT systems in weather monitoring?
+Options:
+a: Manual updates.
+b: Multiple connected nodes exchanging data.
+c: Isolated devices.
+d: One-time data collection.
+Correct Option: b
+

@@ -1,0 +1,45 @@
+Question ID: 26675
+Question: Which protocol is considered lightweight and widely used in IoT applications?
+Options:
+a: HTTP
+b: MQTT
+c: FTP
+d: SMTP
+Correct Option: b
+
+Question ID: 26677
+Question: In MQTT, what does the broker do?
+Options:
+a: Directly connects clients
+b: Forwards messages to clients
+c: Processes data
+d: Stores data permanently
+Correct Option: b
+
+Question ID: 26680
+Question: What does the acronym REST stand for?
+Options:
+a: Real-time Embedded System Technology
+b: Representational State Transfer
+c: Remote System Transfer
+d: Rapidly Extended Storage Technology
+Correct Option: b
+
+Question ID: 26674
+Question: What type of communication does Web Socket support?
+Options:
+a: Half-Duplex
+b: Full-Duplex
+c: Unidirectional
+d: Multicast
+Correct Option: b
+
+Question ID: 26671
+Question: What protocol does HTTP run over to ensure packet delivery?
+Options:
+a: UDP
+b: FTP
+c: TCP/IP
+d: HTTP/2
+Correct Option: c
+

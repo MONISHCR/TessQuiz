@@ -1,0 +1,45 @@
+Question ID: 27225
+Question: Which characteristic allows LLMs to capture long-range dependencies in text?
+Options:
+a: Layer Stacking
+b: Layer Normalization
+c: Contextual Understanding
+d: Dropout Regularization
+Correct Option: c
+
+Question ID: 27227
+Question: What term refers to when LLMs can apply knowledge learned from one task to another?
+Options:
+a: Transfer Learning
+b: Supervised Learning
+c: Unsupervised Learning
+d: Reinforcement Learning
+Correct Option: a
+
+Question ID: 27223
+Question: What describes the learning ability of Large Language Models with little specific training data?
+Options:
+a: Zero-shot and Few-shot Learning
+b: Supervised Learning
+c: Reinforcement Learning
+d: Unsupervised Learning
+Correct Option: a
+
+Question ID: 27222
+Question: Which of the following is a characteristic of contextual embeddings in LLMs?
+Options:
+a: Same representation for all words
+b: Different representations based on surrounding context
+c: Only numerical data is embedded
+d: Context is not considered
+Correct Option: b
+
+Question ID: 27221
+Question: What does the self-attention mechanism in Transformers allow the model to do?
+Options:
+a: Focus on irrelevant text
+b: Generate random text
+c: Focus on relevant parts of the input text
+d: Ignore long-range dependencies
+Correct Option: c
+

@@ -1,0 +1,45 @@
+Question ID: 27145
+Question: What is the ultimate goal of the agent in reinforcement learning?
+Options:
+a: To explore every possible state
+b: To maximize the total reward over time
+c: To minimize actions taken
+d: To create a static model
+Correct Option: b
+
+Question ID: 27144
+Question: What is the role of the environment in the RL framework?
+Options:
+a: To learn from previous states
+b: To evaluate the agent's historical actions
+c: To provide data relevant to achieving the agent's objectives
+d: To define the agent's policy
+Correct Option: c
+
+Question ID: 27139
+Question: In the context of RL, what feedback signal does the agent receive?
+Options:
+a: Policy
+b: State
+c: Reward
+d: Action
+Correct Option: c
+
+Question ID: 27137
+Question: What is the primary goal of an agent in Reinforcement Learning?
+Options:
+a: To create a fixed dataset
+b: To maximize cumulative rewards
+c: To minimize the number of actions
+d: To find the optimal state
+Correct Option: b
+
+Question ID: 27141
+Question: Which of the following is NOT a component of the RL framework?
+Options:
+a: Agent
+b: Environment
+c: Data set
+d: Action
+Correct Option: c
+

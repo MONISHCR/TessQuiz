@@ -1,0 +1,45 @@
+Question ID: 27227
+Question: What term refers to when LLMs can apply knowledge learned from one task to another?
+Options:
+a: Transfer Learning
+b: Supervised Learning
+c: Unsupervised Learning
+d: Reinforcement Learning
+Correct Option: a
+
+Question ID: 27226
+Question: What aspect of LLMs allows them to generate creative text and solve complex problems?
+Options:
+a: Emergent Abilities
+b: Zero-shot Learning
+c: Pretraining
+d: Fine-tuning
+Correct Option: a
+
+Question ID: 27223
+Question: What describes the learning ability of Large Language Models with little specific training data?
+Options:
+a: Zero-shot and Few-shot Learning
+b: Supervised Learning
+c: Reinforcement Learning
+d: Unsupervised Learning
+Correct Option: a
+
+Question ID: 27228
+Question: What significant challenge is associated with the deployment of LLMs?
+Options:
+a: High accuracy
+b: Resource intensity
+c: Ease of training
+d: Simplicity of use
+Correct Option: b
+
+Question ID: 27222
+Question: Which of the following is a characteristic of contextual embeddings in LLMs?
+Options:
+a: Same representation for all words
+b: Different representations based on surrounding context
+c: Only numerical data is embedded
+d: Context is not considered
+Correct Option: b
+

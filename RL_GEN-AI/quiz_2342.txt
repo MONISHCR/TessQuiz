@@ -1,0 +1,45 @@
+Question ID: 27177
+Question: How can RL optimize advertisement placements?
+Options:
+a: By randomly displaying ads
+b: By maximizing click-through and conversion rates
+c: By ignoring user behavior
+d: By using only static content
+Correct Option: b
+
+Question ID: 27180
+Question: What does RL help in drug discovery?
+Options:
+a: Slowing down the research process
+b: Exploring chemical spaces efficiently
+c: Eliminating all experimental trials
+d: Focusing only on traditional compounds
+Correct Option: b
+
+Question ID: 27171
+Question: What does Reinforcement Learning (RL) help an agent do?
+Options:
+a: Make decisions by interacting with an environment
+b: Store large amounts of data
+c: Program without learning
+d: Analyze static data only
+Correct Option: a
+
+Question ID: 27172
+Question: Which algorithm did DeepMind develop to play Atari games?
+Options:
+a: AlphaGo
+b: Deep Q-Network (DQN)
+c: Supervised Learning
+d: Unsupervised Learning
+Correct Option: b
+
+Question ID: 27174
+Question: How does RL contribute to autonomous vehicles?
+Options:
+a: By programming each route manually
+b: By helping them learn to navigate and make real-time decisions
+c: By limiting their speed
+d: By dictating their actions with fixed rules
+Correct Option: b
+

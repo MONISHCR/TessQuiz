@@ -1,0 +1,45 @@
+Question ID: 26668
+Question: What does the Transport layer provide?
+Options:
+a: Error control and flow control
+b: Physical data transmission
+c: Client-server architecture
+d: Wired connection protocols
+Correct Option: a
+
+Question ID: 26666
+Question: What is the data rate range offered by WiMAX (802.16)?
+Options:
+a: 40 kb/s to 400 Mb/s
+b: 1.5 Mb/s to 1 Gb/s
+c: 10 Mb/s to 100 Mb/s
+d: 100 Mb/s to 1 Tb/s
+Correct Option: b
+
+Question ID: 26664
+Question: Which protocol is known for Low Rate Wireless Personal Area Networks?
+Options:
+a: TCP
+b: UDP
+c: 802.15.4
+d: 802.16
+Correct Option: c
+
+Question ID: 26665
+Question: What is the primary function of IPv4?
+Options:
+a: To provide data encryption
+b: To identify devices on a network
+c: To manage local network connections
+d: To facilitate real-time communication
+Correct Option: b
+
+Question ID: 26662
+Question: Which standard is associated with wired Ethernet?
+Options:
+a: IEEE 802.11
+b: IEEE 802.16
+c: 802.3
+d: IEEE 802.15.4
+Correct Option: c
+

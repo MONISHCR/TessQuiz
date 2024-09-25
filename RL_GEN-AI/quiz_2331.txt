@@ -1,0 +1,45 @@
+Question ID: 28097
+Question: Which method does VAE use to make gradient-based optimization feasible?
+Options:
+a: Dropout
+b: Data augmentation
+c: Reparameterization trick
+d: Batch normalization
+Correct Option: c
+
+Question ID: 28098
+Question: After training, how can new data be generated using VAEs?
+Options:
+a: By sampling from the prior distribution
+b: By direct reconstruction from input
+c: By optimizing the discriminator
+d: By manually creating data points
+Correct Option: a
+
+Question ID: 28096
+Question: What is a common issue during GAN training?
+Options:
+a: High accuracy
+b: Mode collapse
+c: Stable convergence
+d: Eliminating noise
+Correct Option: b
+
+Question ID: 28093
+Question: What is the purpose of the discriminator in a GAN?
+Options:
+a: To generate synthetic data
+b: To classify input as real or fake
+c: To minimize the generator's loss
+d: To perform feature matching
+Correct Option: b
+
+Question ID: 28094
+Question: Which loss function is commonly used in GANs?
+Options:
+a: Mean Squared Error
+b: Binary cross-entropy loss
+c: Categorical cross-entropy
+d: Hinge loss
+Correct Option: b
+

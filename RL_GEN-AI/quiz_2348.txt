@@ -1,0 +1,45 @@
+Question ID: 28001
+Question: What does 'action' refer to in the ad placement scenario?
+Options:
+a: The reward from user clicks
+b: The current website a user is on
+c: The set of possible ads displayed to users
+d: The historical data of user behavior
+Correct Option: c
+
+Question ID: 28002
+Question: What type of bandits better models real-world ad placements?
+Options:
+a: Traditional bandits
+b: Contextual bandits
+c: Bandit models with no context
+d: Recurrent bandits
+Correct Option: b
+
+Question ID: 28005
+Question: What feedback does the system receive from the user in ad placements?
+Options:
+a: The type of ad displayed
+b: The website the ad was shown on
+c: Whether the user clicked the ad
+d: The number of ads displayed
+Correct Option: c
+
+Question ID: 28006
+Question: What does using deep learning in contextual bandits help with?
+Options:
+a: Storing all possible state-action pairs
+b: Approximate the function mapping states to optimal actions
+c: Reducing the need for context
+d: Maximizing user interactions
+Correct Option: b
+
+Question ID: 28000
+Question: In the context of ad placements, what does the 'state' represent?
+Options:
+a: The probability of clicking an ad
+b: The feedback received from users
+c: Contextual information about the user
+d: The actions available for ad placements
+Correct Option: c
+

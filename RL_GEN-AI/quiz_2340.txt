@@ -1,0 +1,45 @@
+Question ID: 26286
+Question: What is one limitation of Dynamic Programming?
+Options:
+a: It can only be used for simple problems.
+b: It requires a complete model of the environment.
+c: It always finds the optimal solution.
+d: It is too fast to execute.
+Correct Option: b
+
+Question ID: 26289
+Question: Monte Carlo methods are especially useful when:
+Options:
+a: We have a complete representation of the environment.
+b: We have limited knowledge of the environment.
+c: We need exact solutions to problems.
+d: Problems can be broken down easily.
+Correct Option: b
+
+Question ID: 26285
+Question: What technique is used to solve complex problems by breaking them down into smaller subproblems?
+Options:
+a: Monte Carlo methods
+b: Random sampling
+c: Dynamic Programming
+d: Trial and error
+Correct Option: c
+
+Question ID: 26283
+Question: What is the primary high-level goal for the robot vacuum in the described scenario?
+Options:
+a: Clean the entire house
+b: Move from one room to its dock
+c: Avoid hitting obstacles
+d: Stay in the kitchen
+Correct Option: b
+
+Question ID: 26287
+Question: What type of methods involve learning through random trial and error?
+Options:
+a: Dynamic Programming
+b: Greedy algorithms
+c: Monte Carlo methods
+d: Graph theory
+Correct Option: c
+

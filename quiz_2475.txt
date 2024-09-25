@@ -1,0 +1,45 @@
+Question ID: 26654
+Question: Where can IoT devices transmit data for further processing?
+Options:
+a: To centralized servers or cloud-based applications
+b: Only to local devices
+c: To printouts
+d: To external hard drives
+Correct Option: a
+
+Question ID: 26657
+Question: What type of connections can IoT devices have?
+Options:
+a: Only wireless connections
+b: Sensors, internet, memory, and audio-video connections
+c: Only Bluetooth connections
+d: Only physical cable connections
+Correct Option: b
+
+Question ID: 26658
+Question: What is necessary for IoT devices to exchange data?
+Options:
+a: Internet connection
+b: Unique identities
+c: Large physical sizes
+d: Manual input by users
+Correct Option: b
+
+Question ID: 26651
+Question: What does 'Things' in IoT typically refer to?
+Options:
+a: Humans
+b: Devices with unique identities
+c: Software applications
+d: Network protocols
+Correct Option: b
+
+Question ID: 26655
+Question: What is a key capability of IoT devices?
+Options:
+a: Ability to fly
+b: Ability to act as a human
+c: Remote sensing and actuation
+d: Being powered by human effort
+Correct Option: c
+

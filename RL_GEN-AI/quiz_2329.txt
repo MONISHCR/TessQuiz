@@ -1,0 +1,45 @@
+Question ID: 27246
+Question: What type of learning is generally used during the fine-tuning of LLMs?
+Options:
+a: Unsupervised learning
+b: Reinforcement learning
+c: Supervised learning
+d: Self-supervised learning
+Correct Option: c
+
+Question ID: 27245
+Question: Which of the following is a use of LLMs in customer support?
+Options:
+a: Email Marketing
+b: Therapeutic Chatbots
+c: Natural Language Understanding
+d: Content Creation
+Correct Option: b
+
+Question ID: 27242
+Question: Which application involves LLMs automatically translating text between languages?
+Options:
+a: Text Summarization
+b: Machine Translation
+c: Text Generation
+d: Natural Language Understanding
+Correct Option: b
+
+Question ID: 27244
+Question: What does fine-tuning typically leverage from the pretraining phase?
+Options:
+a: New language syntax
+b: General language knowledge
+c: Domain-specific vocabulary
+d: Reinforcement strategies
+Correct Option: b
+
+Question ID: 27241
+Question: During which stage does a model learn to predict the next word in a sequence?
+Options:
+a: Tokenization
+b: Pretraining
+c: Fine-Tuning
+d: Optimization
+Correct Option: b
+

@@ -1,0 +1,45 @@
+Question ID: 28080
+Question: What are the two main components of a GAN?
+Options:
+a: Encoder and Decoder
+b: Generator and Discriminator
+c: Input and Output
+d: Trainer and Learner
+Correct Option: b
+
+Question ID: 28083
+Question: What type of loss function does the discriminator typically use?
+Options:
+a: Mean Squared Error Loss
+b: Binary Cross-Entropy Loss
+c: Categorical Cross-Entropy Loss
+d: Hinge Loss
+Correct Option: b
+
+Question ID: 28087
+Question: What role does the latent space play in a GAN?
+Options:
+a: It stores real data samples
+b: It represents the input to the generator
+c: It optimizes the discriminator
+d: It provides feedback to the networks
+Correct Option: b
+
+Question ID: 28079
+Question: What does GAN stand for?
+Options:
+a: Generative Adversarial Network
+b: Geographical Analysis Network
+c: Generalized Autonomous Network
+d: Graphical Analytical Node
+Correct Option: a
+
+Question ID: 28085
+Question: Who introduced GANs?
+Options:
+a: Geoffrey Hinton
+b: Ian Goodfellow
+c: Yann LeCun
+d: Andrew Ng
+Correct Option: b
+

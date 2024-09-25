@@ -1,0 +1,45 @@
+Question ID: 28097
+Question: Which method does VAE use to make gradient-based optimization feasible?
+Options:
+a: Dropout
+b: Data augmentation
+c: Reparameterization trick
+d: Batch normalization
+Correct Option: c
+
+Question ID: 28089
+Question: What are the two main components of a Generative Adversarial Network (GAN)?
+Options:
+a: Encoder and Decoder
+b: Decoder and Classifier
+c: Generator and Discriminator
+d: Trainer and Tester
+Correct Option: c
+
+Question ID: 28098
+Question: After training, how can new data be generated using VAEs?
+Options:
+a: By sampling from the prior distribution
+b: By direct reconstruction from input
+c: By optimizing the discriminator
+d: By manually creating data points
+Correct Option: a
+
+Question ID: 28094
+Question: Which loss function is commonly used in GANs?
+Options:
+a: Mean Squared Error
+b: Binary cross-entropy loss
+c: Categorical cross-entropy
+d: Hinge loss
+Correct Option: b
+
+Question ID: 28096
+Question: What is a common issue during GAN training?
+Options:
+a: High accuracy
+b: Mode collapse
+c: Stable convergence
+d: Eliminating noise
+Correct Option: b
+

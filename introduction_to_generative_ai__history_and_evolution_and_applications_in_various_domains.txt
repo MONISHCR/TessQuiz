@@ -1,0 +1,45 @@
+Question ID: 27120
+Question: What is the main function of an Autoencoder?
+Options:
+a: Generate new data
+b: Filter noise from data
+c: Compress and reconstruct data
+d: Detect anomalies in data
+Correct Option: c
+
+Question ID: 27126
+Question: Which technique is used for creating AI-generated music?
+Options:
+a: WaveNet
+b: CycleGAN
+c: PixelCNN
+d: Deep Belief Networks
+Correct Option: a
+
+Question ID: 27125
+Question: What type of generative model uses a sequence of invertible transformations?
+Options:
+a: Normalizing Flows
+b: Generative Adversarial Networks
+c: Autoregressive Models
+d: Reinforcement Learning-Based Models
+Correct Option: a
+
+Question ID: 27118
+Question: Which architecture significantly advanced natural language processing?
+Options:
+a: Autoencoders
+b: GANs
+c: Transformers
+d: Deep Belief Networks
+Correct Option: c
+
+Question ID: 27117
+Question: What does Generative AI primarily focus on?
+Options:
+a: Predicting labels for data
+b: Generating new content
+c: Filtering spam emails
+d: Detecting fraud
+Correct Option: b
+

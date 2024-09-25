@@ -1,0 +1,45 @@
+Question ID: 28109
+Question: What is one of the main challenges in evaluating Generative AI models?
+Options:
+a: Lack of Objective Metrics
+b: Simplicity of Generated Outputs
+c: High Availability of Traditional Metrics
+d: Uniform Human Judgment
+Correct Option: a
+
+Question ID: 28111
+Question: Which metric is mentioned as a way to measure diversity and quality?
+Options:
+a: Precision Recall
+b: Frýchet Inception Distance (FID)
+c: Accuracy Score
+d: Mean Absolute Error
+Correct Option: b
+
+Question ID: 28112
+Question: What factor can introduce variability and bias in the evaluation of generative models?
+Options:
+a: Automated Assessment
+b: Human Judgement
+c: Data Size
+d: Computational Resources
+Correct Option: b
+
+Question ID: 28117
+Question: What do traditional metrics struggle to capture in generative outputs?
+Options:
+a: Speed and Cost
+b: Quality, Diversity, and Realism
+c: User Friendliness
+d: Data Size
+Correct Option: b
+
+Question ID: 28115
+Question: What type of evaluation can be computationally expensive due to large-scale sampling?
+Options:
+a: Performance Evaluation
+b: Time Efficiency Evaluation
+c: Human Evaluation
+d: Generalization Evaluation
+Correct Option: a
+

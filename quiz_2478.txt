@@ -1,0 +1,45 @@
+Question ID: 26681
+Question: What does XMPP stand for?
+Options:
+a: Extended Messaging Protocol
+b: eXtensible Messaging and Presence Protocol
+c: Extra Messaging and Processing Protocol
+d: Extended Messaging Presence Protocol
+Correct Option: b
+
+Question ID: 26685
+Question: What is the main role of a message queue in AMQP?
+Options:
+a: Send messages to the broker
+b: Store messages until processed
+c: Route messages to other clients
+d: Log messages
+Correct Option: b
+
+Question ID: 26688
+Question: Which of the following is NOT an application of DDS?
+Options:
+a: Military systems
+b: Social networking
+c: Medical imaging
+d: Asset tracking
+Correct Option: b
+
+Question ID: 26686
+Question: Which model does DDS use for communication?
+Options:
+a: Request-Response
+b: Publish-Subscribe
+c: Client-Server
+d: Broadcast
+Correct Option: b
+
+Question ID: 26684
+Question: What communication model does AMQP support?
+Options:
+a: Peer-to-Peer
+b: Point-to-Point
+c: Client-Server
+d: Multi-Cast
+Correct Option: b
+
