@@ -6,7 +6,10 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node index.js",     
+    "dev": "nodemon index.js",     
+    "build": "echo 'Project Info:' && npm list --depth=0 && echo 'Node version:' && node -v && echo 'npm version:' && npm -v", 
+    "vercel-build": "npm run build" 
   },
   "keywords": [],
   "author": "",
