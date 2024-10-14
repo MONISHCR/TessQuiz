@@ -113,6 +113,30 @@ def attempt_one_quiz(quiz_id, topic_name, access_token):
 # Streamlit UI
 st.title("🤖 TessBot 2.0")
 
+show_instructions = st.checkbox("Show Instructions")
+
+if show_instructions:
+    st.markdown("""
+    ### Instructions to Use
+    1. **Authentication Access Token**: 
+       - Open Developer Tools (Ctrl + Shift + N).
+       - Navigate to the **Network** tab and reload the page (Ctrl + R).
+       - Look for a JSON response (e.g., `7{}`) and click on it.
+       - You will find the auth token in the format `Bearer xxxxxxxxxx`.
+       - **Copy that and paste it in the Access Token field**.
+
+    2. **Unit ID**:
+       - Open your subject and select the unit.
+       - Check the URL at the top of the page. For example: 
+         ```
+         https://tesseractonline.com/student/subject/xyz/unit/420
+         ```
+       - Here, `420` is the Unit ID.
+
+    3. After entering both the Access Token and Unit ID, click **Submit** for smooth operation.
+    """)
+
+
 access_token = st.text_input(" Authorization Access Token", type="password", placeholder="Bearer XXXXXXXXXXX")
 unit_id = st.text_input("Unit ID", placeholder="Enter space-separated Unit IDs")
 
