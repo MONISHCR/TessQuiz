@@ -138,7 +138,7 @@ if show_instructions:
 
 
 access_token = st.text_input(" Authorization Access Token", type="password", placeholder="Bearer XXXXXXXXXXX")
-unit_id = st.text_input("Unit ID", placeholder="Enter space-separated Unit IDs")
+unit_id = st.text_input("Unit ID", placeholder="Enter space-separated Unit IDs if multiple units 345,420")
 
 if st.button("Submit"):
     if not access_token or not unit_id:
