@@ -118,6 +118,7 @@ show_instructions = st.checkbox("Show Instructions")
 if show_instructions:
     st.markdown("""
     ### Instructions to Use
+    **Only works for the units which are unlocked**
     1. **Authentication Access Token**: 
        - Open Developer Tools (Ctrl + Shift + N).
        - Navigate to the **Network** tab and reload the page (Ctrl + R).
