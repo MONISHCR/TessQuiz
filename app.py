@@ -2,8 +2,6 @@ import streamlit as st
 import requests
 import json
 import time
-from reportlab.lib.pagesizes import letter
-from reportlab.pdfgen import canvas
 
 # Function to get quiz score
 def get_score(quiz_id, access_token):
@@ -97,11 +95,13 @@ def attempt_one_quiz(quiz_id, topic_name, access_token):
         question_text = question["question"]
         options = question["options"]
 
+        # Log the question, options, and correct answer
         quiz_content += f"Question ID: {question_id}\n"
         quiz_content += f"Question: {question_text}\nOptions:\n"
         for key, value in options.items():
             quiz_content += f"{key}: {value}\n"
 
+        # Attempt question and find correct option
         correct_option = attempt_quiz(quiz_Id, question_id, current_score, access_token)
         if correct_option:
             current_score += 1
@@ -110,26 +110,8 @@ def attempt_one_quiz(quiz_id, topic_name, access_token):
 
     return quiz_content
 
-# Function to generate PDF
-def generate_pdf(content, filename):
-    pdf = canvas.Canvas(filename, pagesize=letter)
-    width, height = letter
-
-    y = height - 40  # Start writing from top of the page
-
-    for line in content.split('\n'):
-        pdf.drawString(40, y, line)
-        y -= 15  # Move down for the next line
-
-        # Create a new page if content exceeds one page
-        if y < 40:
-            pdf.showPage()
-            y = height - 40
-
-    pdf.save()
-
 # Streamlit UI
-st.title("🤖 TessBot 2.0")
+st.title("🤖 TessBot - Quiz Automation")
 
 access_token = st.text_input("Access Token", type="password", placeholder="Bearer XXXXXXXXXXX")
 unit_id = st.text_input("Unit ID", placeholder="Enter space-separated Unit IDs")
@@ -155,17 +137,19 @@ if st.button("Submit"):
                         all_content += content
                         st.success(f"Quiz {topic['topicId']} completed.")
 
-            # Save the content to a PDF file and provide download option
+            # Save the content to a text file and provide download option
             timestamp = int(time.time())
-            file_name = f"quiz_results_{timestamp}.pdf"
-            generate_pdf(all_content, file_name)
+            file_name = f"quiz_results_{timestamp}.txt"
+            with open(file_name, "w") as f:
+                f.write(all_content)
 
             with open(file_name, "rb") as f:
                 st.download_button(
-                    label="Download Quiz Results (PDF)",
+                    label="Download Quiz Results",
                     data=f,
                     file_name=file_name,
-                    mime="application/pdf"
+                    mime="text/plain"
                 )
         except Exception as e:
             st.error(f"Error: {e}")
+
