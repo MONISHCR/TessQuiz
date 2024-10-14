@@ -1,0 +1,45 @@
+Question ID: 27121
+Question: Which model generates data by predicting the next data point based on previous points?
+Options:
+a: Variational Autoencoders
+b: Generative Adversarial Networks
+c: Autoregressive Models
+d: Energy-Based Models
+Correct Option: c
+
+Question ID: 27117
+Question: What does Generative AI primarily focus on?
+Options:
+a: Predicting labels for data
+b: Generating new content
+c: Filtering spam emails
+d: Detecting fraud
+Correct Option: b
+
+Question ID: 27119
+Question: Who introduced Generative Adversarial Networks (GANs)?
+Options:
+a: Geoffrey Hinton
+b: Ian Goodfellow
+c: Yann LeCun
+d: Vaswani et al.
+Correct Option: b
+
+Question ID: 27125
+Question: What type of generative model uses a sequence of invertible transformations?
+Options:
+a: Normalizing Flows
+b: Generative Adversarial Networks
+c: Autoregressive Models
+d: Reinforcement Learning-Based Models
+Correct Option: a
+
+Question ID: 27118
+Question: Which architecture significantly advanced natural language processing?
+Options:
+a: Autoencoders
+b: GANs
+c: Transformers
+d: Deep Belief Networks
+Correct Option: c
+

@@ -1,0 +1,45 @@
+Question ID: 28787
+Question: What is one of the major factors influencing the choice of sensors in IoT?
+Options:
+a: Color of the sensors
+b: Sensor brand popularity
+c: Device size
+d: Sensor weight
+Correct Option: c
+
+Question ID: 28788
+Question: How is sensor accuracy defined in the context of sensing range?
+Options:
+a: Limited to scalar sensors only
+b: Defined as detection fidelity
+c: Independent of sensor type
+d: Always optimal with large sensors
+Correct Option: b
+
+Question ID: 28785
+Question: In which scenario would hybrid sensing be used?
+Options:
+a: Using only a temperature sensor
+b: Combining various sensors for multiple measurements
+c: Exclusively monitoring soil moisture
+d: Utilizing cameras only
+Correct Option: b
+
+Question ID: 28783
+Question: What is scalar sensing primarily used for?
+Options:
+a: Measuring changes in values over time
+b: Detecting spatial changes
+c: Measuring images and sound
+d: Collecting data from multiple sensors
+Correct Option: a
+
+Question ID: 28791
+Question: What advantage do wearable sensors provide?
+Options:
+a: Increased size
+b: High energy consumption
+c: Small size and energy efficiency
+d: Limited functionality
+Correct Option: c
+

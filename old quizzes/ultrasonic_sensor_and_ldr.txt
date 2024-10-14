@@ -1,0 +1,45 @@
+Question ID: 28798
+Question: An LDR is also known as what?
+Options:
+a: Photo resistor
+b: Photo diode
+c: Photovoltaic cell
+d: Light emitter
+Correct Option: a
+
+Question ID: 28793
+Question: What is the operating voltage for the HC-SR04 ultrasonic sensor?
+Options:
+a: 3V
+b: 5V
+c: 9V
+d: 12V
+Correct Option: b
+
+Question ID: 28799
+Question: What happens to the resistance of an LDR when light intensity increases?
+Options:
+a: Resistance increases
+b: Resistance remains the same
+c: Resistance decreases
+d: Resistance becomes infinite
+Correct Option: c
+
+Question ID: 28795
+Question: What is the range of distance that the HC-SR04 can measure?
+Options:
+a: 1cm to 100cm
+b: 2cm to 800cm
+c: 5cm to 500cm
+d: 10cm to 1000cm
+Correct Option: b
+
+Question ID: 28797
+Question: Which component is NOT mentioned as an application of the HC-SR04 sensor?
+Options:
+a: Burglar alarms
+b: Wireless charging
+c: Television
+d: Obstacle detection
+Correct Option: c
+

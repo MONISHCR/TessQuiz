@@ -3,15 +3,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
     form.addEventListener('submit', function(event) {
         event.preventDefault();
-
+    
         const accessToken = document.getElementById('access-token').value.trim();
         const unitId = document.getElementById('unit-id').value.trim();
-
+    
         if (accessToken === '' || unitId === '') {
             alert('Please enter both Access Token and Unit ID.');
             return;
         }
-
+    
         fetch('/', {
             method: 'POST',
             headers: {
@@ -23,27 +23,21 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!response.ok) {
                 throw new Error('Network response was not ok');
             }
-            return response.json();
+            return response.blob();  // Get the response as a Blob (file data)
         })
-        .then(data => {
-            console.log('Response received:', data);
-
-            const logsDiv = document.querySelector('.logs');
-            logsDiv.innerHTML = ''; 
-
-            if (data.logs && data.logs.length > 0) {
-                data.logs.forEach(log => {
-                    const logElement = document.createElement('p');
-                    logElement.textContent = log;
-                    logsDiv.appendChild(logElement);
-                });
-            }
-
-            alert(data.message);
+        .then(blob => {
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'quizzes.txt';  // Default download name
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
         })
         .catch(error => {
             console.error('Fetch error:', error);
             alert('Failed to trigger main function in Express.js. Please try again later.');
         });
     });
+    
 });

@@ -1,0 +1,36 @@
+Question ID: 27819
+Question: What is initialized in the record array?
+Options:
+a: Count of arms only
+b: Count of pulls and running average reward
+c: Only rewards
+d: Only probabilities
+Correct Option: b
+
+Question ID: 27818
+Question: In the Epsilon-greedy strategy, what does 'epsilon' (eps) represent?
+Options:
+a: Probability of exploitation
+b: Probability of exploration
+c: Number of arms
+d: Average reward
+Correct Option: b
+
+Question ID: 27817
+Question: What does the Epsilon-greedy strategy primarily address?
+Options:
+a: Exploration-Exploitation trade-off
+b: Memory management
+c: Data preprocessing
+d: Noise reduction
+Correct Option: a
+
+Question ID: 27824
+Question: What is the primary goal of the Epsilon-greedy strategy in the context of the multi-armed bandit problem?
+Options:
+a: Minimize exploration
+b: Maximize cumulative rewards
+c: Maximize exploration
+d: Randomize rewards
+Correct Option: b
+

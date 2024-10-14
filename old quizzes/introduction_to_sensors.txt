@@ -1,0 +1,45 @@
+Question ID: 28825
+Question: What do passive sensors do?
+Options:
+a: Transmit a signal
+b: Listen to the environment
+c: Amplify sound
+d: Emit light
+Correct Option: b
+
+Question ID: 28824
+Question: What type of sensor requires an external power source?
+Options:
+a: Active sensor
+b: Passive sensor
+c: Digital sensor
+d: Analog sensor
+Correct Option: b
+
+Question ID: 28832
+Question: Which sensor type is typically used to detect changes in orientation?
+Options:
+a: Thermometer
+b: Infrared sensor
+c: Electronic gyroscope
+d: Resistance Temperature Detector
+Correct Option: c
+
+Question ID: 28828
+Question: What type of sensor generates a binary output?
+Options:
+a: Analog sensor
+b: Passive sensor
+c: Active sensor
+d: Digital sensor
+Correct Option: d
+
+Question ID: 28830
+Question: Which of the following is NOT a property typically measured by sensors?
+Options:
+a: Temperature
+b: Sound
+c: Color
+d: Time
+Correct Option: d
+

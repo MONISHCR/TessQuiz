@@ -1,0 +1,45 @@
+Question ID: 28818
+Question: What is the primary use of a push button switch?
+Options:
+a: For displaying data
+b: To generate a momentary pulse
+c: For controlling LEDs
+d: To connect to power sources
+Correct Option: b
+
+Question ID: 28817
+Question: What type of switch is described as 'Push to Make'?
+Options:
+a: Normally Closed
+b: Normally Open
+c: Toggle
+d: Rocker
+Correct Option: b
+
+Question ID: 28813
+Question: What does LED stand for?
+Options:
+a: Light Emitting Diode
+b: Light Energy Diode
+c: Luminous Emitting Device
+d: Luminescent Energy Diode
+Correct Option: a
+
+Question ID: 28815
+Question: What is the usual maximum current for an LED to operate?
+Options:
+a: 10mA
+b: 5mA
+c: 20mA
+d: 50mA
+Correct Option: c
+
+Question ID: 28816
+Question: Which of the following is an output device for displaying alphanumeric characters?
+Options:
+a: Push Button
+b: Camera
+c: 7-Segment LED Display
+d: LED
+Correct Option: c
+

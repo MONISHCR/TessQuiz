@@ -1,0 +1,45 @@
+Question ID: 28777
+Question: Which type of error occurs when a sensor's output differs from the actual value by a constant?
+Options:
+a: Drift
+b: Offset Error
+c: Sensitivity Error
+d: Quantization Error
+Correct Option: b
+
+Question ID: 28776
+Question: What property describes the smallest change in measurable quantity a sensor can detect?
+Options:
+a: Sensor Accuracy
+b: Sensor Resolution
+c: Sensor Sensitivity
+d: Sensor Precision
+Correct Option: b
+
+Question ID: 28781
+Question: What type of error is caused when digital output approximates the measured property inaccurately?
+Options:
+a: Analog-to-Digital Conversion Error
+b: Drift
+c: Quantization Error
+d: Sensitivity Error
+Correct Option: c
+
+Question ID: 28779
+Question: Which error occurs when a sensor's output shifts due to previous input alterations?
+Options:
+a: Drift
+b: Hysteresis Error
+c: Sensitivity Error
+d: Offset Error
+Correct Option: b
+
+Question ID: 28778
+Question: What does sensor accuracy refer to?
+Options:
+a: The smallest change it can detect
+b: Ability to measure close to the true value
+c: Ability to produce consistent results
+d: Ability to measure over a wide range
+Correct Option: b
+

@@ -1,0 +1,45 @@
+Question ID: 28116
+Question: What is a challenge in assessing the generalization of generative models?
+Options:
+a: Models performing well on unseen data
+b: Models performing well on seen data
+c: Real-world variations in data
+d: Simplicity of the evaluation process
+Correct Option: c
+
+Question ID: 28118
+Question: What is highlighted as necessary for evaluating generative AI models?
+Options:
+a: More robust evaluation frameworks
+b: Simpler evaluation metrics
+c: Fewer human evaluations
+d: Automated systems only
+Correct Option: a
+
+Question ID: 28115
+Question: What type of evaluation can be computationally expensive due to large-scale sampling?
+Options:
+a: Performance Evaluation
+b: Time Efficiency Evaluation
+c: Human Evaluation
+d: Generalization Evaluation
+Correct Option: a
+
+Question ID: 28114
+Question: Why is context and relevance important in text generation applications?
+Options:
+a: They determine the model's training time
+b: They affect the quality of generated data
+c: They are crucial for input relevance
+d: They simplify computational evaluation
+Correct Option: c
+
+Question ID: 28112
+Question: What factor can introduce variability and bias in the evaluation of generative models?
+Options:
+a: Automated Assessment
+b: Human Judgement
+c: Data Size
+d: Computational Resources
+Correct Option: b
+

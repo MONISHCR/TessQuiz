@@ -1,0 +1,45 @@
+Question ID: 27225
+Question: Which characteristic allows LLMs to capture long-range dependencies in text?
+Options:
+a: Layer Stacking
+b: Layer Normalization
+c: Contextual Understanding
+d: Dropout Regularization
+Correct Option: c
+
+Question ID: 27219
+Question: What type of neural network architecture is primarily used in Large Language Models?
+Options:
+a: Recurrent Neural Network
+b: Convolutional Neural Network
+c: Transformer
+d: Feedforward Neural Network
+Correct Option: c
+
+Question ID: 27220
+Question: What is the primary purpose of pretraining in Large Language Models?
+Options:
+a: To specialize in specific tasks
+b: To develop a broad understanding of language
+c: To reduce model size
+d: To implement self-attention
+Correct Option: b
+
+Question ID: 27222
+Question: Which of the following is a characteristic of contextual embeddings in LLMs?
+Options:
+a: Same representation for all words
+b: Different representations based on surrounding context
+c: Only numerical data is embedded
+d: Context is not considered
+Correct Option: b
+
+Question ID: 27221
+Question: What does the self-attention mechanism in Transformers allow the model to do?
+Options:
+a: Focus on irrelevant text
+b: Generate random text
+c: Focus on relevant parts of the input text
+d: Ignore long-range dependencies
+Correct Option: c
+

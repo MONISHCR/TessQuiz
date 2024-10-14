@@ -1,0 +1,45 @@
+Question ID: 27842
+Question: What does adjusting the temperature parameter (Ä) in the Softmax Policy control?
+Options:
+a: The number of actions
+b: The speed of learning
+c: The exploration-exploitation balance
+d: The reward rate
+Correct Option: c
+
+Question ID: 27841
+Question: In the Softmax Selection Policy, how are actions selected?
+Options:
+a: Based on a binary choice
+b: By a random selection
+c: Using a probability distribution
+d: By linear ranking of actions
+Correct Option: c
+
+Question ID: 27846
+Question: For which environment is the Epsilon-Greedy strategy most suitable?
+Options:
+a: Dynamic environments needing adaptability
+b: Static environments prioritizing simplicity
+c: Complex environments requiring fine-tuning
+d: All types of environments equally
+Correct Option: b
+
+Question ID: 27839
+Question: What is a key disadvantage of the Epsilon-Greedy strategy?
+Options:
+a: It guarantees convergence to the optimal action
+b: It has a fixed exploration rate that may not be optimal
+c: It is complex to implement
+d: It does not allow exploration
+Correct Option: b
+
+Question ID: 27837
+Question: What does the Epsilon-Greedy strategy primarily focus on?
+Options:
+a: Exclusively exploring new actions
+b: Balancing exploration and exploitation
+c: Only exploiting the best-known action
+d: Randomly selecting any action
+Correct Option: b
+

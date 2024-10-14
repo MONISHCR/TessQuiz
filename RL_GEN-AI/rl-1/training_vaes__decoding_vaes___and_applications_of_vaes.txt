@@ -1,0 +1,45 @@
+Question ID: 28100
+Question: Which technique does a VAE use to allow gradient-based optimization?
+Options:
+a: Dropout
+b: Batch normalization
+c: Reparameterization trick
+d: Skipping connections
+Correct Option: c
+
+Question ID: 28103
+Question: Which application of VAEs involves handling missing data?
+Options:
+a: Image Generation
+b: Data Imputation
+c: Anomaly Detection
+d: Dimensionality Reduction
+Correct Option: b
+
+Question ID: 28108
+Question: In which field do VAEs assist with generating new designs?
+Options:
+a: Physics
+b: Economics
+c: Creative fields like fashion and architecture
+d: Medicine
+Correct Option: c
+
+Question ID: 28104
+Question: What kind of data can VAEs be applied to for anomaly detection?
+Options:
+a: Only images
+b: Only structured data
+c: Normal distributions
+d: Various types of data, including images and sensor data
+Correct Option: d
+
+Question ID: 28099
+Question: What does the encoder network in a VAE map input data to?
+Options:
+a: Output layer
+b: Latent space
+c: Hidden representation
+d: Reconstruction layer
+Correct Option: b
+

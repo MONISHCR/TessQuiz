@@ -1,0 +1,36 @@
+Question ID: 27190
+Question: What is the primary focus of reinforcement learning models represented by string diagrams?
+Options:
+a: Data storage
+b: Agent-environment interactions
+c: Only the rewards
+d: Modeling real-world systems
+Correct Option: b
+
+Question ID: 27188
+Question: How are processes in string diagrams typically connected?
+Options:
+a: With untyped arrows
+b: With typed arrows
+c: With broken links
+d: Using rectangular shapes only
+Correct Option: b
+
+Question ID: 27184
+Question: In string diagrams, arrows are labeled with what?
+Options:
+a: Nouns
+b: Adjectives
+c: Verbs or verb phrases
+d: Symbols
+Correct Option: c
+
+Question ID: 27186
+Question: String diagrams allow for what kind of approach to understanding systems?
+Options:
+a: An isolated approach
+b: A compositional approach
+c: Only a theoretical approach
+d: A non-visual approach
+Correct Option: b
+

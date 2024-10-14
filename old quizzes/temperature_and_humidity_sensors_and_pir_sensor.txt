@@ -1,0 +1,45 @@
+Question ID: 28833
+Question: What is the operating voltage range for the DHT22 sensor?
+Options:
+a: 1 V to 3 V
+b: 3 V to 5 V
+c: 5 V to 10 V
+d: 0 V to 1 V
+Correct Option: b
+
+Question ID: 28841
+Question: In the PIR sensor, what does the delay potentiometer control?
+Options:
+a: Sensitivity of motion detection
+b: Duration for which output is received
+c: Brightness of an LED
+d: Power consumption
+Correct Option: b
+
+Question ID: 28836
+Question: What does the PIR sensor measure?
+Options:
+a: Temperature
+b: Humidity
+c: Infrared light
+d: Sound
+Correct Option: c
+
+Question ID: 28834
+Question: What type of sensor is the DHT22?
+Options:
+a: Analog Temperature Sensor
+b: Digital Humidity Temperature Sensor
+c: Passive Infrared Sensor
+d: Ultrasonic Sensor
+Correct Option: b
+
+Question ID: 28837
+Question: What is the accuracy of the temperature measurement for the DHT22?
+Options:
+a: +/- 1 degree
+b: +/- 0.5 degrees
+c: +/- 2 degrees
+d: +/- 5 degrees
+Correct Option: b
+

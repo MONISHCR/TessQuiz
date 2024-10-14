@@ -191,6 +191,7 @@ app.post('/', async (req, res) => {
 
     try {
         const unitIds = unitId.split(' ');
+        let allContent = '';
 
         for (const unit of unitIds) {
             const topics = await getUnitTopics(unit);
@@ -206,18 +207,24 @@ app.post('/', async (req, res) => {
                     console.log(`Quiz with id ${topic.topicId} is already done!`);
                 } else {
                     console.log(`Solving quiz ${topic.topicId}`);
-                    await attemptOneQuiz(topic.topicId, topic.topicName);
+                    const result = await attemptOneQuiz(topic.topicId, topic.topicName);
+                    allContent += `Quiz ${topic.topicId} results:\n${result}\n\n`; // Collect all content
                     console.log(`Quiz ${topic.topicId} is finished.`);
                     console.log('');
                 }
             }
         }
 
-        res.status(200).json({ logs, message: 'Processing complete' });
+        // Send the text file as a download
+        const fileName = `quizzes_${Date.now()}.txt`;
+        res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+        res.send(allContent);
+
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 });
+
 
 app.listen(port, () => {
     console.log(`Server is running on http://localhost:${port}`);

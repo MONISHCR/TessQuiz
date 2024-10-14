@@ -1,0 +1,45 @@
+Question ID: 27245
+Question: Which of the following is a use of LLMs in customer support?
+Options:
+a: Email Marketing
+b: Therapeutic Chatbots
+c: Natural Language Understanding
+d: Content Creation
+Correct Option: b
+
+Question ID: 27239
+Question: What is the primary method used for pretraining Large Language Models (LLMs)?
+Options:
+a: Supervised learning
+b: Unsupervised learning
+c: Reinforcement learning
+d: Semi-supervised learning
+Correct Option: b
+
+Question ID: 27246
+Question: What type of learning is generally used during the fine-tuning of LLMs?
+Options:
+a: Unsupervised learning
+b: Reinforcement learning
+c: Supervised learning
+d: Self-supervised learning
+Correct Option: c
+
+Question ID: 27241
+Question: During which stage does a model learn to predict the next word in a sequence?
+Options:
+a: Tokenization
+b: Pretraining
+c: Fine-Tuning
+d: Optimization
+Correct Option: b
+
+Question ID: 27243
+Question: What technique is often used to enhance search engines that use LLMs?
+Options:
+a: Text Summarization
+b: Semantic Search
+c: Sentiment Analysis
+d: Chatbots
+Correct Option: b
+

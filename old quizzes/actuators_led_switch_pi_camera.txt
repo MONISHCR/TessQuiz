@@ -1,0 +1,45 @@
+Question ID: 28852
+Question: What is an important factor for electric and fluid powered rotary actuators?
+Options:
+a: Speed of light
+b: Output torque
+c: Wave length
+d: Color spectrum
+Correct Option: b
+
+Question ID: 28851
+Question: Which type of pneumatic actuator moves the valve both ways?
+Options:
+a: Spring return
+b: Double-acting
+c: Single-acting
+d: Linear actuator
+Correct Option: b
+
+Question ID: 28846
+Question: What is a characteristic of electric actuators compared to others?
+Options:
+a: They are always the cheapest
+b: They leak more fluid
+c: They don't freeze in outdoor use
+d: They are larger than pneumatic actuators
+Correct Option: c
+
+Question ID: 28843
+Question: What is a key factor to consider when choosing powered actuators?
+Options:
+a: Color of the actuator
+b: Weight they can handle
+c: Brand of the actuator
+d: Length of the actuator
+Correct Option: b
+
+Question ID: 28848
+Question: Which actuator type is beneficial for producing super tiny movements?
+Options:
+a: Hydraulic actuators
+b: Pneumatic actuators
+c: Linear actuators using piezo crystals
+d: Electric actuators
+Correct Option: c
+

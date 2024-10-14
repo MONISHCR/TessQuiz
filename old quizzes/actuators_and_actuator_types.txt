@@ -1,0 +1,45 @@
+Question ID: 28804
+Question: Which type of actuator works on the principle of compression and decompression of fluids?
+Options:
+a: Electric actuators
+b: Pneumatic actuators
+c: Hydraulic actuators
+d: Mechanical actuators
+Correct Option: c
+
+Question ID: 28807
+Question: What do pneumatic actuators primarily use to generate force?
+Options:
+a: Electricity
+b: Liquid
+c: Vacuum or compressed air
+d: Magnetic fields
+Correct Option: c
+
+Question ID: 28803
+Question: What is an actuator primarily responsible for?
+Options:
+a: Generating electrical signals
+b: Moving or controlling a mechanism
+c: Storing energy
+d: Monitoring performance
+Correct Option: b
+
+Question ID: 28808
+Question: Which actuator type utilizes shape memory materials?
+Options:
+a: Hydraulic actuators
+b: Thermal or magnetic actuators
+c: Pneumatic actuators
+d: Mechanical actuators
+Correct Option: b
+
+Question ID: 28812
+Question: Which actuator type responds to external stimuli by changing shape?
+Options:
+a: Mechanical actuators
+b: Thermal or magnetic actuators
+c: Soft actuators
+d: Hydraulic actuators
+Correct Option: c
+

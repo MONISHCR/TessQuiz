@@ -1,0 +1,45 @@
+Question ID: 26195
+Question: In what aspect does DRL learn to optimize its actions?
+Options:
+a: By maximizing scores
+b: By reducing algorithm complexity
+c: By programming manual instructions
+d: By limiting knowledge to small datasets
+Correct Option: a
+
+Question ID: 26188
+Question: What type of function can deep neural networks approximate in DRL?
+Options:
+a: Linear functions
+b: Polynomial functions
+c: Value functions
+d: Differential equations
+Correct Option: c
+
+Question ID: 26187
+Question: What does the 'deep' in deep reinforcement learning (DRL) refer to?
+Options:
+a: The use of shallow learning techniques
+b: The use of deep learning techniques
+c: The depth of the learning process
+d: The complexity of the environment
+Correct Option: b
+
+Question ID: 26190
+Question: In which application is DRL NOT typically used?
+Options:
+a: Autonomous vehicles
+b: Game playing
+c: Weather forecasting
+d: Robotics
+Correct Option: c
+
+Question ID: 26192
+Question: What type of learning does DRL enable through end-to-end learning?
+Options:
+a: Supervised learning
+b: Unsupervised learning
+c: Manual feature engineering
+d: Direct learning from raw input data
+Correct Option: d
+

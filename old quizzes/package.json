@@ -1,0 +1,25 @@
+{
+  "engines": {
+    "node": "v20.10.0"
+  },
+  "name": "tessbot",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",     
+    "dev": "nodemon index.js",     
+    "build": "echo 'Project Info:' && npm list --depth=0 && echo 'Node version:' && node -v && echo 'npm version:' && npm -v", 
+    "vercel-build": "npm run build" 
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "axios": "^1.7.2",
+    "ejs": "^3.1.10",
+    "ejs-mate": "^4.0.0",
+    "express": "^4.19.2",
+    "nodemon": "^3.1.4"
+  }
+}

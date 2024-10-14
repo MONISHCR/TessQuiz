@@ -1,0 +1,45 @@
+Question ID: 28084
+Question: What is used as the input for the generator in a GAN?
+Options:
+a: Real data samples
+b: Noise vector
+c: Latent representation
+d: Encoded data
+Correct Option: b
+
+Question ID: 28085
+Question: Who introduced GANs?
+Options:
+a: Geoffrey Hinton
+b: Ian Goodfellow
+c: Yann LeCun
+d: Andrew Ng
+Correct Option: b
+
+Question ID: 28081
+Question: What does the generator in a GAN try to create?
+Options:
+a: Real data samples
+b: Synthetic data samples
+c: Noise data samples
+d: Compressed data samples
+Correct Option: b
+
+Question ID: 28082
+Question: What does the discriminator in a GAN do?
+Options:
+a: Generates synthetic data
+b: Compresses input data
+c: Distinguishes between real and fake data
+d: Optimizes the generator
+Correct Option: c
+
+Question ID: 28086
+Question: In a GAN, what is the primary objective of the generator?
+Options:
+a: To minimize its training time
+b: To produce real data samples
+c: To fool the discriminator
+d: To classify data correctly
+Correct Option: c
+
