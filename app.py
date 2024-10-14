@@ -111,7 +111,7 @@ def attempt_one_quiz(quiz_id, topic_name, access_token):
     return quiz_content
 
 # Streamlit UI
-st.title("🤖 TessBot - Quiz Automation")
+st.title("🤖 TessBot 2.0")
 
 access_token = st.text_input("Access Token", type="password", placeholder="Bearer XXXXXXXXXXX")
 unit_id = st.text_input("Unit ID", placeholder="Enter space-separated Unit IDs")
