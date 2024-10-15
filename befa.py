@@ -319,15 +319,36 @@ total_questions = len(mcq_questions) + len(fill_in_the_blanks)
 if st.session_state['current_question'] < len(mcq_questions):
     current_mcq = mcq_questions[st.session_state['current_question']]
     selected_option = display_mcq(current_mcq['question'], current_mcq['options'])
+
+    # Save selected answer when Next or Previous is clicked
     if st.button("Next"):
-        st.session_state['selected_answers'].append(selected_option)
+        # Save the selected answer only if it's not already saved
+        if len(st.session_state['selected_answers']) > st.session_state['current_question']:
+            st.session_state['selected_answers'][st.session_state['current_question']] = selected_option
+        else:
+            st.session_state['selected_answers'].append(selected_option)
+
         st.session_state['current_question'] += 1
+
+    if st.session_state['current_question'] > 0 and st.button("Previous"):
+        st.session_state['current_question'] -= 1
+
 elif st.session_state['current_question'] < total_questions:
     current_fill_in_the_blanks = fill_in_the_blanks[st.session_state['current_question'] - len(mcq_questions)]
     answer = display_fill_in_the_blanks(current_fill_in_the_blanks['question'])
+
+    # Save selected answer when Next or Previous is clicked
     if st.button("Next"):
-        st.session_state['selected_answers'].append(answer)
+        if len(st.session_state['selected_answers']) > st.session_state['current_question']:
+            st.session_state['selected_answers'][st.session_state['current_question']] = answer
+        else:
+            st.session_state['selected_answers'].append(answer)
+
         st.session_state['current_question'] += 1
+
+    if st.session_state['current_question'] > 0 and st.button("Previous"):
+        st.session_state['current_question'] -= 1
+
 else:
     st.write("Quiz Completed!")
     st.session_state['score'] = calculate_score(mcq_questions, fill_in_the_blanks)
@@ -343,4 +364,4 @@ else:
 
 # Footer with copyright notice
 st.markdown("---")  # Horizontal line for separation
-st.markdown("<p style='text-align: center; font-size: 12px;'>© Monish KMIT. All Rights Reserved.</p>", unsafe_allow_html=True)        
+st.markdown("<p style='text-align: center; font-size: 12px;'>© Monish KMIT. All Rights Reserved.</p>", unsafe_allow_html=True)
