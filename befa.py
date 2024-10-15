@@ -340,3 +340,7 @@ else:
 
     if st.button("Reset Quiz"):
         reset_quiz()
+
+# Footer with copyright notice
+st.markdown("---")  # Horizontal line for separation
+st.markdown("<p style='text-align: center; font-size: 12px;'>© Monish KMIT. All Rights Reserved.</p>", unsafe_allow_html=True)        
