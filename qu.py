@@ -18,7 +18,7 @@ faq_data = {
         },
         "schedule": [
             {"date": "17-10-2024", "day": "Thursday", "forenoon": ["RL"], "afternoon": ["BEFA"]},
-            {"date": "18-10-2024", "day": "Friday", "forenoon": ["DVT"], "afternoon": ["GENAI"]},
+            {"date": "18-10-2024", "day": "Friday", "forenoon": ["DVT"], "afternoon": [ "GENAI"]},
             {"date": "19-10-2024", "day": "Saturday", "time": "10:00 A.M - 1:00 P.M", "subject": "IPR"}
         ]
     },
@@ -44,7 +44,8 @@ keywords = {
     "drive": ["drive", "folder", "documents"],
     "bulletin": ["bulletin", "notice", "board"],
     "assist-cell": ["assist-cell", "grievance", "help"],
-    "cr": ["cr", "class representative", "class rep", "crs", "monish", "shaistha"]
+    "cr": ["cr", "class representative", "class rep", "crs", "monish", "shaistha"],
+    "units_query": ["material", "unit", "units", "be fa", "rl", "gen ai", "ipr", "dvt"]  # Added for unit-related queries
 }
 
 # Streamlit application layout
@@ -73,22 +74,25 @@ def get_response(user_input):
         response += "Schedule:\n"
         for entry in timetable['schedule']:
             if 'forenoon' in entry and 'afternoon' in entry:
-                subjects_forenoon = ", ".join(entry['forenoon'])
-                subjects_afternoon = ", ".join(entry['afternoon'])
+                subjects_forenoon = ", ".join(entry['forenoon']) if entry['forenoon'] else "N/A"
+                subjects_afternoon = ", ".join(entry['afternoon']) if entry['afternoon'] else "N/A"
                 time_info = ""
             else:
                 subjects_forenoon = "N/A"
                 subjects_afternoon = "N/A"
                 time_info = f" Time: {entry.get('time', 'N/A')}"
+
             response += (f"{entry['date']} ({entry['day']}):\n"
-                         f"  Forenoon: {subjects_forenoon}\n"
-                         f"  Afternoon: {subjects_afternoon}{time_info}\n")
+                          f"  Forenoon: {subjects_forenoon}\n"
+                          f"  Afternoon: {subjects_afternoon}{time_info}\n")
     elif match == "contact":
         response = "\n".join([f"{name}: {number}" for name, number in faq_data["contact information"].items()])
     elif match == "cr":
         response = faq_data["cr_information"]
     elif match == "material":
         response = faq_data["material link"]
+    elif match == "units_query":
+        response = "For unit materials, please visit: https://vidyaa-beta.vercel.app/"
     elif match == "drive":
         response = f"4-1 Drive: {faq_data['additional resources']['4-1 Drive']}"
     elif match == "bulletin":
