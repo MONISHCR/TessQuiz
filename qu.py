@@ -1,4 +1,5 @@
 import streamlit as st
+from difflib import get_close_matches
 
 # Define all relevant data
 faq_data = {
@@ -25,6 +26,7 @@ faq_data = {
         "Monish": "+917032338726",
         "Shaistha": "+919410478221"
     },
+    "cr_information": "Monish and Shaistha are the class representatives (CRs) for CSM-A.",
     "material link": "If you need 4-1 material, it will be available at https://vidyaa-beta.vercel.app/",
     "additional resources": {
         "4-1 Drive": "https://drive.google.com/drive/folders/1AuJkUA5e6uLX_9IcBQxv5MA_piSl8omg?usp=sharing",
@@ -33,18 +35,39 @@ faq_data = {
     }
 }
 
+# Keywords for matching questions
+keywords = {
+    "portion": ["portion", "units", "syllabus", "topics"],
+    "timetable": ["timetable", "exam dates", "schedule"],
+    "contact": ["contact", "number", "phone"],
+    "material": ["material", "4-1", "resources"],
+    "drive": ["drive", "folder", "documents"],
+    "bulletin": ["bulletin", "notice", "board"],
+    "assist-cell": ["assist-cell", "grievance", "help"],
+    "cr": ["cr", "class representative", "class rep", "crs", "monish", "shaistha"]
+}
+
 # Streamlit application layout
 st.title("Student Query Chatbot")
 
 user_input = st.text_input("Ask your question:")
 
-# Function to generate a response based on keywords
+# Function to find the best keyword match
+def find_keyword_match(user_input):
+    words = user_input.lower().split()
+    for word in words:
+        for key, variations in keywords.items():
+            if get_close_matches(word, variations, n=1, cutoff=0.6):  # Fuzzy matching
+                return key
+    return None
+
+# Function to generate a response based on matched keyword
 def get_response(user_input):
-    user_input_lower = user_input.lower()
-    
-    if "portion" in user_input_lower or "units" in user_input_lower:
+    match = find_keyword_match(user_input)
+
+    if match == "portion":
         response = "\n".join([f"{subject}: {info}" for subject, info in faq_data["mid exams portion"].items()])
-    elif "timetable" in user_input_lower or "exam dates" in user_input_lower:
+    elif match == "timetable":
         timetable = faq_data["exam timetable"]
         response = f"Exam Dates: {timetable['dates']}\n"
         response += "Schedule:\n"
@@ -57,19 +80,20 @@ def get_response(user_input):
                 subjects_forenoon = "N/A"
                 subjects_afternoon = "N/A"
                 time_info = f" Time: {entry.get('time', 'N/A')}"
-
             response += (f"{entry['date']} ({entry['day']}):\n"
-                          f"  Forenoon: {subjects_forenoon}\n"
-                          f"  Afternoon: {subjects_afternoon}{time_info}\n")
-    elif "contact" in user_input_lower or "number" in user_input_lower:
+                         f"  Forenoon: {subjects_forenoon}\n"
+                         f"  Afternoon: {subjects_afternoon}{time_info}\n")
+    elif match == "contact":
         response = "\n".join([f"{name}: {number}" for name, number in faq_data["contact information"].items()])
-    elif "material" in user_input_lower or "4-1" in user_input_lower:
+    elif match == "cr":
+        response = faq_data["cr_information"]
+    elif match == "material":
         response = faq_data["material link"]
-    elif "drive" in user_input_lower:
+    elif match == "drive":
         response = f"4-1 Drive: {faq_data['additional resources']['4-1 Drive']}"
-    elif "bulletin" in user_input_lower:
+    elif match == "bulletin":
         response = f"Bulletin Board (Notice Board): {faq_data['additional resources']['Bulletin Board (Notice Board)']}"
-    elif "assist-cell" in user_input_lower:
+    elif match == "assist-cell":
         response = f"Assist-Cell CSM-A (Grievance Cell): {faq_data['additional resources']['Assist-Cell CSM-A (Grievance Cell)']}"
     else:
         response = "Sorry, I don't have the answer to that. Please try rephrasing your question."
