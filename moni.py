@@ -60,14 +60,11 @@ SELECT * FROM admin.PropertyMapping WHERE Source_Pty_Id = '{safe_source_pty_id}'
 
 IF NOT EXISTS (SELECT * FROM admin.PropertyMapping WHERE Source_Pty_Id = '{safe_source_pty_id}' AND Target_Pty_Id = {numeric_target_pty_id})
 BEGIN
-    PRINT 'Inserting mapping for Source_Pty_Id: {safe_source_pty_id} -> Target_Pty_Id: {numeric_target_pty_id}';
     INSERT INTO admin.PropertyMapping (Source_Pty_Id, Target_Pty_Id, Active, Created)
     VALUES ('{safe_source_pty_id}', {numeric_target_pty_id}, 1, GETDATE());
 END
 ELSE
 BEGIN
-    PRINT 'Mapping already exists for Source_Pty_Id: {safe_source_pty_id} -> Target_Pty_Id: {numeric_target_pty_id}';
-    PRINT 'Updating Active flag to 1 and setting Created date for existing mapping.'; -- Or just PRINT 'Mapping already exists...'
     -- Optional: Update existing record if needed, e.g., ensure Active=1
     -- UPDATE admin.PropertyMapping SET Active = 1, Created = GETDATE() WHERE Source_Pty_Id = '{safe_source_pty_id}' AND Target_Pty_Id = {numeric_target_pty_id};
 END
@@ -272,29 +269,29 @@ def generate_dmg_cleanup_sql(client_db, start_period, end_period):
 -- Filter: EntityType = 'Asset' AND Period BETWEEN {start_period} AND {end_period}
 -- ======================================================================
 
-PRINT 'Using database: {safe_client_db}';
+
 USE {safe_client_db};
 GO
 
-PRINT 'Selecting records to be deleted (before deletion)...';
+
 SELECT C.*
 FROM CashFlow C
 INNER JOIN Entity E ON C.EntityKey = E.EntityKey
 WHERE E.EntityType = 'Asset' AND C.Period BETWEEN {start_period} AND {end_period};
 
-PRINT 'Attempting to delete records...';
+
 DELETE C
 FROM CashFlow C
 INNER JOIN Entity E ON C.EntityKey = E.EntityKey
 WHERE E.EntityType = 'Asset' AND C.Period BETWEEN {start_period} AND {end_period};
 
-PRINT 'Selecting records after deletion attempt (should be empty if successful)...';
+
 SELECT C.*
 FROM CashFlow C
 INNER JOIN Entity E ON C.EntityKey = E.EntityKey
 WHERE E.EntityType = 'Asset' AND C.Period BETWEEN {start_period} AND {end_period};
 
-PRINT 'DMG Data Cleanup script finished for period {start_period} to {end_period}.';
+
 GO
 """
 
@@ -350,28 +347,28 @@ def generate_aim_cleanup_sql(aim_db, period):
 -- Filter: item_typ_id IN (SELECT acct_id FROM account) AND period = '{safe_period}'
 -- ======================================================================
 
-PRINT 'Using database: {safe_aim_db}';
+
 USE {safe_aim_db};
 GO
 
-PRINT 'Selecting records to be deleted (before deletion)...';
+
 SELECT *
 FROM line_item
 WHERE item_typ_id IN (SELECT acct_id FROM account)
   AND period = '{safe_period}';
 
-PRINT 'Attempting to delete records...';
+
 DELETE FROM line_item
 WHERE item_typ_id IN (SELECT acct_id FROM account)
   AND period = '{safe_period}';
 
-PRINT 'Selecting records after deletion attempt (should be empty if successful)...';
+
 SELECT *
 FROM line_item
 WHERE item_typ_id IN (SELECT acct_id FROM account)
   AND period = '{safe_period}';
 
-PRINT 'AIM Data Cleanup script finished for period {safe_period}.';
+
 GO
 """
 
