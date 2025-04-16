@@ -27,7 +27,7 @@ try:
     # ---> IMPORTANT: Store your API Key as an environment variable <---
     # Example for local run: export GOOGLE_API_KEY='YOUR_API_KEY'
     # In Streamlit Cloud, set it in the app's secrets manager.
-    GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+    GOOGLE_API_KEY = AIzaSyCC2LKSvLd7_u6RSsWEAmtHsvZNiUPphoI
     if not GOOGLE_API_KEY:
         # Attempt to get from Streamlit secrets if running in Cloud
         try:
