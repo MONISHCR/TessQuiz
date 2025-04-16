@@ -63,14 +63,9 @@ BEGIN
     INSERT INTO admin.PropertyMapping (Source_Pty_Id, Target_Pty_Id, Active, Created)
     VALUES ('{safe_source_pty_id}', {numeric_target_pty_id}, 1, GETDATE());
 END
-ELSE
-BEGIN
-    -- Optional: Update existing record if needed, e.g., ensure Active=1
-    -- UPDATE admin.PropertyMapping SET Active = 1, Created = GETDATE() WHERE Source_Pty_Id = '{safe_source_pty_id}' AND Target_Pty_Id = {numeric_target_pty_id};
-END
 
 SELECT * FROM admin.PropertyMapping WHERE Source_Pty_Id = '{safe_source_pty_id}' AND Target_Pty_Id = {numeric_target_pty_id};
-GO
+
 """
 
 def process_property_mapping(uploaded_file):
