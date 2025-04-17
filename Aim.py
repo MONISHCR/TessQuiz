@@ -30,7 +30,7 @@ HEADER_ROW_ZERO_INDEXED = 0
 try:
     # ---> PASTE YOUR GOOGLE API KEY HERE <---
     # Replace "YOUR_API_KEY_HERE" with your actual Google API Key
-    GOOGLE_API_KEY = "AIzaSyCC2LKSvLd7_u6RSsWEAmtHsvZNiUPphoI"  # <<< REPLACE THIS WITH YOUR ACTUAL KEY
+    GOOGLE_API_KEY = "AIzaSyCC2LKSvLd7_u6RSsWEAmtHsvZNiUPphoI" # <<< REPLACE THIS WITH YOUR ACTUAL KEY
 
     if not GOOGLE_API_KEY or GOOGLE_API_KEY == "YOUR_API_KEY_HERE" or GOOGLE_API_KEY == "PASTE_YOUR_GOOGLE_API_KEY_HERE": # Check for placeholder
         st.error("🚨 Google API Key is missing or not replaced in the code! Please paste your key directly into the `GOOGLE_API_KEY` variable.", icon="🔑")
@@ -61,7 +61,11 @@ def escape_sql_string(value):
     """Escapes single quotes in a string for SQL compatibility."""
     if isinstance(value, str):
         return value.replace("'", "''")
-    return value
+    # Handle potential non-string inputs gracefully, although primarily used for strings
+    elif value is None:
+        return "NULL" # Or handle as appropriate
+    else:
+        return str(value) # Convert others to string
 
 # --- Function to create and provide the template file (Property Mapping) ---
 @st.cache_data # Cache the template generation
@@ -142,84 +146,63 @@ def generate_sql_with_gemini(operation_type, user_inputs):
             You are an AI assistant generating T-SQL scripts for Microsoft SQL Server. Task: Create an SQL script to delete specific records from the 'line_item' table within a specified AIM database. Target Database: {safe_aim_db} Relevant Tables & Columns: * line_item (item_typ_id INT, period VARCHAR(50), ...) * account (acct_id INT, ...) Instructions for SQL Generation: 1. Switch context to the target database: `USE {safe_aim_db}; GO`. 2. **Before** the deletion, include a `SELECT *` from `line_item` to show records where `item_typ_id` is IN `(SELECT acct_id FROM account)` AND the `period` column = '{safe_period}'. 3. Perform the `DELETE` operation on `line_item` based on the *exact same* filter criteria. 4. **After** the deletion, include the *exact same* `SELECT *` statement again to verify. 5. Use `GO` batch separators. Ensure correct T-SQL syntax. Generate the complete SQL script following these steps precisely. Include comments explaining each step (SELECT before, DELETE, SELECT after).
             """ # Kept compact
 
-        elif operation_type == "Remove Stale Leases":
+        elif operation_type == "Targeted Lease/Unit Removal": # Renamed for clarity
             client_db = user_inputs.get('client_db')
-            provider_id = user_inputs.get('provider_id')
-            property_ids_str = user_inputs.get('property_ids_str', '') # Expecting comma/newline separated string
+            provider_name = user_inputs.get('provider_name')
+            property_ids_str = user_inputs.get('property_ids_str', '')
+            unit_keys_str = user_inputs.get('unit_keys_str', '')
 
-            if not client_db or not provider_id: return None, "Missing required inputs (Client DB Name, Provider ID)."
+            # --- Input Validation ---
+            if not client_db or not provider_name or not property_ids_str or not unit_keys_str:
+                return None, "Missing required inputs (Client DB, Provider Name, Property IDs, Unit Keys)."
 
             safe_client_db = f"[{client_db.replace(']', ']]')}]"
-            safe_provider_id = escape_sql_string(provider_id)
+            safe_provider_name = escape_sql_string(provider_name)
 
             # Process Property IDs
-            property_id_list = []
-            if property_ids_str:
-                # Split by comma or newline, strip whitespace, remove empty strings
-                property_id_list = [pid.strip() for pid in re.split(r'[,\n]', property_ids_str) if pid.strip()]
-                if not property_id_list:
-                    return None, "Property IDs provided but none were valid after parsing."
+            property_id_list = [pid.strip() for pid in re.split(r'[,\n]', property_ids_str) if pid.strip()]
+            if not property_id_list:
+                return None, "Invalid Property IDs provided. Please provide a comma or newline separated list."
+            property_values_clause = ", ".join([f"('{escape_sql_string(pid)}')" for pid in property_id_list])
 
-            property_filter_desc = "ALL properties" if not property_id_list else f"{len(property_id_list)} specific properties"
+            # Process Unit Keys
+            unit_key_list_str = [uk.strip() for uk in re.split(r'[,\n]', unit_keys_str) if uk.strip()]
+            unit_key_list_int = []
+            invalid_unit_keys = []
+            for uk_str in unit_key_list_str:
+                try:
+                    unit_key_list_int.append(int(uk_str))
+                except ValueError:
+                    invalid_unit_keys.append(uk_str)
+            if invalid_unit_keys:
+                return None, f"Invalid Unit Keys provided: {', '.join(invalid_unit_keys)}. Unit Keys must be integers."
+            if not unit_key_list_int:
+                 return None, "Invalid Unit Keys provided. Please provide a comma or newline separated list of integers."
+            unit_keys_values_clause = ", ".join([str(uk) for uk in unit_key_list_int]) # For IN clause
+
+            # --- Build Script Header ---
             script_header += f"-- Target Database: {safe_client_db}\n"
-            script_header += f"-- Provider ID: {provider_id}\n"
-            script_header += f"-- Property Filter: {property_filter_desc}\n"
+            script_header += f"-- Provider Name: {provider_name}\n"
+            script_header += f"-- Property IDs: {', '.join(property_id_list)}\n"
+            script_header += f"-- Unit Keys: {', '.join(map(str, unit_key_list_int))}\n"
             script_header += f"-- Tables Affected: RecurringBilling, RentEscalation, LeaseUnit, SecurityDeposit, LegalClause, Lease, Unit\n"
-            script_header += f"-- Action: DELETE matching records\n"
-            script_header += f"-- **WARNING: THIS SCRIPT PERFORMS DELETIONS ACROSS MULTIPLE TABLES. REVIEW VERY CAREFULLY.**\n"
+            script_header += f"-- Action: DELETE records matching specific criteria (Properties+Provider for lease data, Properties+Units for unit data).\n"
+            script_header += f"-- **WARNING: THIS SCRIPT PERFORMS TARGETED DELETIONS ACROSS MULTIPLE TABLES. REVIEW VERY CAREFULLY.**\n"
             script_header += f"-- ======================================================================\n\n"
 
-            # Build the prompt instructions
-            property_insert_sql = ""
-            if property_id_list:
-                 # Create ('id1'), ('id2'), ... format, escaping each ID
-                values_clause = ", ".join([f"('{escape_sql_string(pid)}')" for pid in property_id_list])
-                property_insert_sql = f"""
--- Populate #Properties with specific PropertyIDs provided
-INSERT INTO #Properties (PropertyID) VALUES
-{values_clause};
-GO
-
--- Update PropertyKey for the specified PropertyIDs
-UPDATE TP
-SET PropertyKey = P.PropertyKey
-FROM #Properties AS TP
-INNER JOIN dbo.Property AS P ON TP.PropertyID = P.PropertyID;
-GO
-
--- Check if any provided property IDs were not found
-IF EXISTS (SELECT 1 FROM #Properties WHERE PropertyKey IS NULL)
-BEGIN
-    PRINT 'WARNING: Some provided PropertyIDs were not found in the dbo.Property table:';
-    SELECT PropertyID FROM #Properties WHERE PropertyKey IS NULL;
-    -- Consider whether to stop execution here or continue with found properties
-    -- For now, let's proceed with the ones found.
-END
-GO
-"""
-            else:
-                property_insert_sql = f"""
--- Populate #Properties with ALL PropertyKeys associated with the ProviderID
-INSERT INTO #Properties (PropertyKey, PropertyID)
-SELECT P.PropertyKey, P.PropertyID
-FROM dbo.Property AS P
-INNER JOIN dbo.Client_Provider AS CP ON P.ClientProviderKey = CP.ClientProviderKey
-WHERE CP.ClientProviderKey = @ClientProviderKey;
-GO
-
-PRINT 'INFO: Processing all properties associated with the provider.';
-GO
-"""
-
+            # --- Build Prompt ---
             prompt = f"""
-            You are an AI assistant generating T-SQL scripts for Microsoft SQL Server.
-            Task: Create a script to delete stale lease-related data for a specific provider, potentially filtered by property IDs, within a client database.
-            Target Database: {safe_client_db}
-            Provider ID: {safe_provider_id}
-            Specific Property IDs to filter by (if any): {', '.join(property_id_list) if property_id_list else 'None (Use all properties for the provider)'}
+            You are an AI assistant generating T-SQL scripts for Microsoft SQL Server precisely following user-provided logic.
+            Task: Create a script to delete specific lease and unit data based on Provider Name, a list of Property IDs, and a list of Unit Keys.
+
+            Inputs Provided by User:
+            - Target Database: {safe_client_db}
+            - Provider Name: '{safe_provider_name}'
+            - Property IDs: {property_values_clause}
+            - Unit Keys: ({unit_keys_values_clause}) -- These are the keys for the specific units to delete.
 
             Relevant Tables & Relationships:
-            - dbo.Provider (ProviderID, ProviderKey)
+            - dbo.Provider (ProviderID, ProviderName, ProviderKey)
             - dbo.Client_Provider (ClientProviderKey, ProviderKey)
             - dbo.Property (PropertyKey, PropertyID, ClientProviderKey)
             - dbo.Unit (UnitKey, PropertyKey)
@@ -230,29 +213,40 @@ GO
             - dbo.SecurityDeposit (SecurityDepositKey, EntityKey -> LeaseKey, ClientProviderKey)
             - dbo.LegalClause (LegalClauseKey, EntityKey -> LeaseKey, ClientProviderKey)
 
-            Instructions for SQL Generation:
+            Instructions for SQL Generation (Follow EXACTLY):
             1.  Switch context to the target database: `USE {safe_client_db}; GO`.
-            2.  Declare and set a variable `@ProviderID` with the value '{safe_provider_id}'. `GO`.
-            3.  Declare a variable `@ClientProviderKey` (INT). `GO`.
-            4.  Find the `@ClientProviderKey` by joining `dbo.Client_Provider` and `dbo.Provider` on `ProviderKey` and filtering by `@ProviderID`. Select the `TOP 1` key into the variable. `GO`. Include a check if `@ClientProviderKey` is NULL and print an error message if it is.
-            5.  Drop a temp table `#Properties` if it exists. `GO`.
-            6.  Create the temp table `#Properties` with columns `PropertyKey INT NULL` and `PropertyID VARCHAR(100) NULL`. `GO`.
-            7.  {property_insert_sql} -- This multi-line block contains logic based on whether property IDs were provided.
-            8.  **Pre-Deletion Counts:** Perform SELECT COUNT(1) for each of the following tables, joining appropriately back to `#Properties` via `Lease.PropertyKey` or `Unit.PropertyKey`, and filtering by `@ClientProviderKey` where the table has it. Label each count clearly using 'AS Entity'. The tables are: RecurringBilling, RentEscalation, LeaseUnit, SecurityDeposit, LegalClause, Lease, Unit. Ensure joins are correct (e.g., SecurityDeposit/LegalClause join to Lease on EntityKey=LeaseKey).
-            9.  Include a clear comment block warning that deletions are about to occur.
-            10. **Deletions (Order is important):** Perform DELETE operations in the following order to respect foreign key constraints. Filter deletes using joins back to `#Properties` and by `@ClientProviderKey` where applicable.
-                a.  `DELETE RB FROM dbo.RecurringBilling AS RB INNER JOIN dbo.LeaseUnit AS LU ... INNER JOIN dbo.Lease AS L ... INNER JOIN #Properties AS P ... WHERE RB.ClientProviderKey = @ClientProviderKey; GO`
-                b.  `DELETE RE FROM dbo.RentEscalation AS RE INNER JOIN dbo.LeaseUnit AS LU ... INNER JOIN dbo.Lease AS L ... INNER JOIN #Properties AS P ... WHERE RE.ClientProviderKey = @ClientProviderKey; GO`
-                c.  `DELETE SD FROM dbo.SecurityDeposit AS SD INNER JOIN dbo.Lease AS L ON SD.EntityKey = L.LeaseKey INNER JOIN #Properties AS P ON L.PropertyKey = P.PropertyKey WHERE SD.ClientProviderKey = @ClientProviderKey; GO`
-                d.  `DELETE LC FROM dbo.LegalClause AS LC INNER JOIN dbo.Lease AS L ON LC.EntityKey = L.LeaseKey INNER JOIN #Properties AS P ON L.PropertyKey = P.PropertyKey WHERE LC.ClientProviderKey = @ClientProviderKey; GO`
-                e.  `DELETE LU FROM dbo.LeaseUnit AS LU INNER JOIN dbo.Lease AS L ON LU.LeaseKey = L.LeaseKey INNER JOIN #Properties AS P ON L.PropertyKey = P.PropertyKey WHERE LU.ClientProviderKey = @ClientProviderKey; GO`
-                f.  `DELETE L FROM dbo.Lease AS L INNER JOIN #Properties AS P ON L.PropertyKey = P.PropertyKey WHERE L.ClientProviderKey = @ClientProviderKey; GO`
-                g.  `DELETE U FROM dbo.Unit AS U INNER JOIN #Properties AS P ON U.PropertyKey = P.PropertyKey; GO` -- Note: Sample didn't show ClientProviderKey filter here. Follow this pattern.
-            11. **Post-Deletion Counts:** Repeat the exact same SELECT COUNT(1) statements from step 8 to verify deletions.
-            12. Drop the temp table `#Properties`. `GO`.
-            13. Ensure correct T-SQL syntax and use `GO` batch separators appropriately.
+            2.  Declare `@ProviderName VARCHAR(100)` and set it to '{safe_provider_name}'. `GO`.
+            3.  Declare `@ClientProviderKey INT`. `GO`.
+            4.  Find the `@ClientProviderKey` by joining `dbo.Client_Provider` (CP) and `dbo.Provider` (P) on `CP.ProviderKey=P.ProviderKey` and filtering `WHERE P.ProviderName = @ProviderName`. Select the `TOP 1 CP.ClientProviderKey` into the variable. `GO`.
+            5.  Check if `@ClientProviderKey` IS NULL. If it is, PRINT an error message 'ERROR: Provider Name not found or does not have a ClientProviderKey.' and potentially `RETURN` or use `RAISERROR`. `GO`.
+            6.  Drop a temp table `#Properties` if it exists. `GO`.
+            7.  Create the temp table `#Properties` with columns `PropertyKey INT NULL` and `PropertyID VARCHAR(100)`. `GO`.
+            8.  Insert the provided Property IDs into `#Properties (PropertyID)` using: `INSERT INTO #Properties (PropertyID) VALUES {property_values_clause}; GO`.
+            9.  Update `#Properties` to set `PropertyKey` by joining with `dbo.Property` on `PropertyID`: `UPDATE TP SET PropertyKey=P.PropertyKey FROM #Properties AS TP INNER JOIN dbo.Property AS P ON TP.PropertyID=P.PropertyID; GO`.
+            10. Check if any `PropertyKey` in `#Properties` is still NULL. If so, print a warning listing the `PropertyID`s that were not found. `GO`.
+            11. **Pre-Deletion Counts (Follow this specific logic):**
+                a.  `SELECT 'RecurringBilling' AS Entity, COUNT(1) FROM dbo.RecurringBilling AS RB INNER JOIN dbo.LeaseUnit AS LU ON RB.LeaseUnitKey=LU.LeaseUnitKey INNER JOIN dbo.Lease AS L ON LU.LeaseKey=L.LeaseKey INNER JOIN #Properties AS P ON L.PropertyKey=P.PropertyKey WHERE RB.ClientProviderKey=@ClientProviderKey; GO`
+                b.  `SELECT 'RentEscalation' AS Entity, COUNT(1) FROM dbo.RentEscalation AS RE INNER JOIN dbo.LeaseUnit AS LU ON RE.LeaseUnitKey=LU.LeaseUnitKey INNER JOIN dbo.Lease AS L ON LU.LeaseKey=L.LeaseKey INNER JOIN #Properties AS P ON L.PropertyKey=P.PropertyKey WHERE RE.ClientProviderKey=@ClientProviderKey; GO`
+                c.  `SELECT 'LeaseUnit' AS Entity, COUNT(1) FROM dbo.LeaseUnit AS LU INNER JOIN dbo.Lease AS L ON LU.LeaseKey=L.LeaseKey INNER JOIN #Properties AS P ON L.PropertyKey=P.PropertyKey WHERE LU.ClientProviderKey=@ClientProviderKey; GO`
+                d.  `SELECT 'SecurityDeposit' AS Entity, COUNT(1) FROM dbo.SecurityDeposit AS SD INNER JOIN dbo.Lease AS L ON SD.EntityKey=L.LeaseKey INNER JOIN #Properties AS P ON L.PropertyKey=P.PropertyKey WHERE SD.ClientProviderKey=@ClientProviderKey; GO`
+                e.  `SELECT 'LegalClause' AS Entity, COUNT(1) FROM dbo.LegalClause AS LC INNER JOIN dbo.Lease AS L ON LC.EntityKey=L.LeaseKey INNER JOIN #Properties AS P ON L.PropertyKey=P.PropertyKey WHERE LC.ClientProviderKey=@ClientProviderKey; GO`
+                f.  `SELECT 'Lease' AS Entity, COUNT(1) FROM dbo.Lease AS L INNER JOIN #Properties AS P ON L.PropertyKey=P.PropertyKey WHERE L.ClientProviderKey=@ClientProviderKey; GO`
+                g.  `SELECT 'Unit' AS Entity, COUNT(1) FROM dbo.Unit AS U INNER JOIN #Properties AS P ON U.PropertyKey=P.PropertyKey WHERE U.UnitKey IN ({unit_keys_values_clause}); GO` -- Use the specific Unit Keys here
+            12. Include a clear comment block: `-- ===== DELETION START ===== REVIEW COUNTS ABOVE CAREFULLY =====`.
+            13. **Deletions (Follow this specific logic and order):**
+                a.  `DELETE RB FROM dbo.RecurringBilling AS RB INNER JOIN dbo.LeaseUnit AS LU ON RB.LeaseUnitKey=LU.LeaseUnitKey INNER JOIN dbo.Lease AS L ON LU.LeaseKey=L.LeaseKey INNER JOIN #Properties AS P ON L.PropertyKey=P.PropertyKey WHERE RB.ClientProviderKey=@ClientProviderKey; GO`
+                b.  `DELETE RE FROM dbo.RentEscalation AS RE INNER JOIN dbo.LeaseUnit AS LU ON RE.LeaseUnitKey=LU.LeaseUnitKey INNER JOIN dbo.Lease AS L ON LU.LeaseKey=L.LeaseKey INNER JOIN #Properties AS P ON L.PropertyKey=P.PropertyKey WHERE RE.ClientProviderKey=@ClientProviderKey; GO`
+                c.  `DELETE SD FROM dbo.SecurityDeposit AS SD INNER JOIN dbo.Lease AS L ON SD.EntityKey=L.LeaseKey INNER JOIN #Properties AS P ON L.PropertyKey=P.PropertyKey WHERE SD.ClientProviderKey=@ClientProviderKey; GO`
+                d.  `DELETE LC FROM dbo.LegalClause AS LC INNER JOIN dbo.Lease AS L ON LC.EntityKey=L.LeaseKey INNER JOIN #Properties AS P ON L.PropertyKey=P.PropertyKey WHERE LC.ClientProviderKey=@ClientProviderKey; GO`
+                e.  `DELETE LU FROM dbo.LeaseUnit AS LU INNER JOIN dbo.Lease AS L ON LU.LeaseKey=L.LeaseKey INNER JOIN #Properties AS P ON L.PropertyKey=P.PropertyKey WHERE LU.ClientProviderKey=@ClientProviderKey; GO`
+                f.  `DELETE L FROM dbo.Lease AS L INNER JOIN #Properties AS P ON L.PropertyKey=P.PropertyKey WHERE L.ClientProviderKey=@ClientProviderKey; GO`
+                g.  `DELETE U FROM dbo.Unit AS U INNER JOIN #Properties AS P ON U.PropertyKey=P.PropertyKey WHERE U.UnitKey IN ({unit_keys_values_clause}); GO` -- Use the specific Unit Keys here
+            14. Include a clear comment block: `-- ===== DELETION END ===== REVIEW COUNTS BELOW CAREFULLY =====`.
+            15. **Post-Deletion Counts:** Repeat the exact same SELECT COUNT(1) statements from step 11 (a through g) to verify deletions.
+            16. Drop the temp table `#Properties`. `GO`.
+            17. Ensure correct T-SQL syntax and use `GO` batch separators appropriately throughout.
 
-            Generate the complete T-SQL script.
+            Generate the complete T-SQL script based *only* on these precise instructions.
             """
 
         else:
@@ -264,14 +258,12 @@ GO
 
         response = model.generate_content(prompt, safety_settings=GEMINI_SAFETY_SETTINGS)
 
-        # Handle potential blocks or errors in response
+        # Handle potential blocks or errors in response (same as before)
         if not response.candidates:
              try:
-                 # Access safety feedback if available
                  feedback = response.prompt_feedback
                  block_reason = feedback.block_reason if hasattr(feedback, 'block_reason') else "Unknown"
                  block_details = feedback.block_reason_message if hasattr(feedback, 'block_reason_message') else "No details provided."
-                 # Additionally check safety ratings if block reason isn't specific
                  safety_ratings_str = ""
                  if hasattr(feedback, 'safety_ratings'):
                      safety_ratings_str = ", ".join([f"{r.category.name}: {r.probability.name}" for r in feedback.safety_ratings])
@@ -283,7 +275,7 @@ GO
                  return None, "AI returned an empty or blocked response."
 
         generated_sql = response.text
-        # Basic cleanup
+        # Basic cleanup (same as before)
         generated_sql = re.sub(r"^```sql\s*", "", generated_sql, flags=re.IGNORECASE | re.MULTILINE)
         generated_sql = re.sub(r"\s*```$", "", generated_sql, flags=re.IGNORECASE | re.MULTILINE)
         final_script = script_header + generated_sql.strip()
@@ -297,12 +289,12 @@ GO
         print(f"Gemini Generation Error Traceback: {traceback.format_exc()}") # Log for server/debug
         return None, f"AI generation failed: {str(e)}"
     finally:
-        # Optionally clear the status placeholder after a delay or keep success/error message
         # status_placeholder.empty() # Clears the message immediately
         pass
 
 
 # --- Property Mapping Specific Configuration & Processing ---
+# (Same as before)
 COL_PROVIDER_HDR = "Provider"
 COL_SOURCE_ID_HDR = "Source_Pty_Id"
 COL_AIM_CODE_HDR = "AIM Code"
@@ -318,12 +310,12 @@ def process_property_mapping(uploaded_file_obj):
     """Handles the Property Mapping process using AI. Uses st for feedback."""
     processed_data = None; error_message = None; rows_read = 0; rows_filtered = 0
     filename = uploaded_file_obj.name
-    status_placeholder = st.empty() # Placeholder for status messages
+    status_placeholder = st.empty()
 
     try:
         status_placeholder.info(f"--- Processing Property Mapping for: *{filename}* ---")
 
-        # --- Stage 1 & 2: Read & Validate Headers ---
+        # --- Read & Validate Headers ---
         file_content_bytes = uploaded_file_obj.getvalue()
         file_content = io.BytesIO(file_content_bytes)
         status_placeholder.info("Reading headers...")
@@ -351,16 +343,15 @@ def process_property_mapping(uploaded_file_obj):
             st.markdown("\n".join(found_cols_display + missing_cols))
 
         if not all_found:
-            # Extract only the missing header names cleanly
             missing_header_names = [hdr.split("'")[1] for hdr in missing_cols if "Missing" in hdr]
             error_message = f"Header validation failed. Missing required columns: {', '.join(missing_header_names)}"
             st.error(f"🚨 {error_message}")
-            status_placeholder.empty() # Clear status as error is shown
+            status_placeholder.empty()
             return None, error_message, 0, 0
 
         st.success("✅ Header validation successful!")
 
-        # --- Stage 3: Read Full Data ---
+        # --- Read Full Data ---
         status_placeholder.info("Reading full data...")
         file_content.seek(0)
         try:
@@ -374,9 +365,8 @@ def process_property_mapping(uploaded_file_obj):
         df = df.fillna(''); rows_read = len(df)
         status_placeholder.info(f"Read {rows_read} data rows. Applying filters...")
 
-        # --- Stage 4: Data Processing and Filtering ---
+        # --- Data Processing and Filtering ---
         reverse_header_map = {v: k for k, v in col_indices.items()}; df_processed = df.rename(columns=reverse_header_map)
-        # Ensure required columns exist before processing
         required_cols_for_processing = [COL_SOURCE_ID_HDR, COL_AIM_CODE_HDR, COL_EXT_ID_HDR, COL_AIM_NAME_HDR, COL_TARGET_ID_HDR]
         if not all(col in df_processed.columns for col in required_cols_for_processing):
              missing_processing_cols = [col for col in required_cols_for_processing if col not in df_processed.columns]
@@ -396,28 +386,27 @@ def process_property_mapping(uploaded_file_obj):
         rows_filtered = len(filtered_df)
         status_placeholder.info(f"Found {rows_filtered} rows matching criteria. Preparing for AI...")
 
-        # --- Stage 5: Generate SQL Script using AI ---
+        # --- Generate SQL Script using AI ---
         if not filtered_df.empty:
             ai_inputs = {'filtered_df': filtered_df[[COL_SOURCE_ID_HDR, COL_TARGET_ID_HDR, COL_AIM_NAME_HDR]], 'filename': filename}
-            # AI function will show its own status messages
             processed_data, error_msg = generate_sql_with_gemini("Property Mapping", ai_inputs)
-            if error_msg: error_message = error_msg # Error already shown by AI func
-            status_placeholder.empty() # Clear processing status, AI status remains
+            if error_msg: error_message = error_msg
+            status_placeholder.empty()
         else:
             status_placeholder.warning("⚠️ No data rows matched the filter criteria. No script generated.")
             error_message = "No matching rows found for Property Mapping."
 
     except Exception as e:
         status_placeholder.error(f"🚨 An error occurred during Property Mapping processing: {e}", icon="🔥")
-        st.exception(e) # Show traceback in UI
+        st.exception(e)
         error_message = f"Unexpected error: {str(e)}"
         processed_data = None
 
-    # Don't clear status_placeholder here if you want the final status (like 'no rows') to remain.
     return processed_data, error_message, rows_read, rows_filtered
 
 
 # --- DMG Data Cleanup Specific Functions ---
+# (Same as before)
 def process_dmg_cleanup(client_db, start_period, end_period):
     """Handles the process for DMG Data Cleanup using AI. Uses st for feedback."""
     processed_data = None; error_message = None
@@ -425,20 +414,15 @@ def process_dmg_cleanup(client_db, start_period, end_period):
 
     try:
         status_placeholder.info(f"--- Processing DMG Data Cleanup: DB='{client_db}', Period='{start_period}-{end_period}' ---")
-        # Input Validation (AI func does thorough checks, basic checks here)
-        if not client_db or not start_period or not end_period:
-            raise ValueError("DB Name, Start Period, End Period are required.")
-        if not (start_period.isdigit() and len(start_period) == 8):
-             raise ValueError("Start Period must be 8 digits (YYYYMMDD).")
-        if not (end_period.isdigit() and len(end_period) == 8):
-             raise ValueError("End Period must be 8 digits (YYYYMMDD).")
-        if int(start_period) > int(end_period):
-             raise ValueError("Start Period cannot be after End Period.")
+        if not client_db or not start_period or not end_period: raise ValueError("DB Name, Start Period, End Period are required.")
+        if not (start_period.isdigit() and len(start_period) == 8): raise ValueError("Start Period must be 8 digits (YYYYMMDD).")
+        if not (end_period.isdigit() and len(end_period) == 8): raise ValueError("End Period must be 8 digits (YYYYMMDD).")
+        if int(start_period) > int(end_period): raise ValueError("Start Period cannot be after End Period.")
 
         status_placeholder.info("Inputs look okay. Preparing for AI...")
         ai_inputs = {'client_db': client_db, 'start_period': start_period, 'end_period': end_period}
         processed_data, error_msg = generate_sql_with_gemini("DMG Data Cleanup", ai_inputs)
-        if error_msg: error_message = error_msg # Error shown by AI func
+        if error_msg: error_message = error_msg
         status_placeholder.empty()
 
     except ValueError as ve:
@@ -452,6 +436,7 @@ def process_dmg_cleanup(client_db, start_period, end_period):
     return processed_data, error_message
 
 # --- AIM Data Cleanup Specific Functions ---
+# (Same as before)
 def process_aim_cleanup(aim_db, period):
     """Handles the process for AIM Data Cleanup using AI. Uses st for feedback."""
     processed_data = None; error_message = None
@@ -459,16 +444,13 @@ def process_aim_cleanup(aim_db, period):
 
     try:
         status_placeholder.info(f"--- Processing AIM Data Cleanup: DB='{aim_db}', Period='{period}' ---")
-         # Input Validation (AI func does thorough checks, basic checks here)
-        if not aim_db or not period:
-            raise ValueError("AIM DB Name and Period are required.")
-        if not re.fullmatch(r"^\d{4}[Mm][Tt][Hh]\d{2}$", period):
-            raise ValueError("Period must be YYYYMTHMM format (e.g., 2024MTH01).")
+        if not aim_db or not period: raise ValueError("AIM DB Name and Period are required.")
+        if not re.fullmatch(r"^\d{4}[Mm][Tt][Hh]\d{2}$", period): raise ValueError("Period must be YYYYMTHMM format (e.g., 2024MTH01).")
 
         status_placeholder.info("Inputs look okay. Preparing for AI...")
         ai_inputs = {'aim_db': aim_db, 'period': period}
         processed_data, error_msg = generate_sql_with_gemini("AIM Data Cleanup", ai_inputs)
-        if error_msg: error_message = error_msg # Error shown by AI func
+        if error_msg: error_message = error_msg
         status_placeholder.empty()
 
     except ValueError as ve:
@@ -481,26 +463,34 @@ def process_aim_cleanup(aim_db, period):
 
     return processed_data, error_message
 
-# --- Remove Stale Leases Specific Functions ---
-def process_stale_lease_removal(client_db, provider_id, property_ids_str):
-    """Handles the process for Removing Stale Leases using AI. Uses st for feedback."""
+# --- Targeted Lease/Unit Removal Specific Functions ---
+def process_targeted_lease_unit_removal(client_db, provider_name, property_ids_str, unit_keys_str):
+    """Handles the specific lease/unit removal process using AI."""
     processed_data = None; error_message = None
     status_placeholder = st.empty()
 
     try:
-        status_placeholder.info(f"--- Processing Remove Stale Leases: DB='{client_db}', Provider='{provider_id}' ---")
-        # Basic Input Validation
-        if not client_db or not provider_id:
-            raise ValueError("Client Database Name and Provider ID are required.")
-        # Property IDs are optional, further validation (parsing) happens in AI function
+        status_placeholder.info(f"--- Processing Targeted Lease/Unit Removal: DB='{client_db}', Provider='{provider_name}' ---")
+        # Basic Input Validation (More thorough validation in AI function)
+        if not client_db or not provider_name or not property_ids_str or not unit_keys_str:
+            raise ValueError("Client DB Name, Provider Name, Property IDs, and Unit Keys are required for this operation.")
+
+        # Simple check for content in property IDs and unit keys
+        if not property_ids_str.strip():
+             raise ValueError("Property IDs cannot be empty for this operation.")
+        if not unit_keys_str.strip():
+             raise ValueError("Unit Keys cannot be empty for this operation.")
+
 
         status_placeholder.info("Inputs look okay. Preparing for AI...")
         ai_inputs = {
             'client_db': client_db,
-            'provider_id': provider_id,
-            'property_ids_str': property_ids_str # Pass the raw string
+            'provider_name': provider_name,
+            'property_ids_str': property_ids_str,
+            'unit_keys_str': unit_keys_str
         }
-        processed_data, error_msg = generate_sql_with_gemini("Remove Stale Leases", ai_inputs)
+        # AI function will perform detailed parsing and validation of IDs/Keys
+        processed_data, error_msg = generate_sql_with_gemini("Targeted Lease/Unit Removal", ai_inputs)
         if error_msg: error_message = error_msg # Error shown by AI func
         status_placeholder.empty()
 
@@ -508,7 +498,7 @@ def process_stale_lease_removal(client_db, provider_id, property_ids_str):
         status_placeholder.error(f"🚨 Input validation failed: {ve}")
         error_message = f"Validation failed: {ve}"
     except Exception as e:
-        status_placeholder.error(f"🚨 An error occurred during Stale Lease Removal processing: {e}", icon="🔥")
+        status_placeholder.error(f"🚨 An error occurred during Targeted Lease/Unit Removal processing: {e}", icon="🔥")
         st.exception(e)
         error_message = f"Unexpected error: {str(e)}"
 
@@ -526,11 +516,10 @@ st.warning("""
     **⚠️ Important:** SQL scripts are generated by AI. **ALWAYS review the generated script VERY CAREFULLY for correctness and safety before executing it on any database.**
     You are responsible for validating the AI's output. Use caution, especially with `DELETE` operations.
     Ensure your API key is correctly set in the code (replace the placeholder). API usage may incur costs.
-    """, icon="🚨") # Updated warning about API key
+    """, icon="🚨")
 
 if not GEMINI_CONFIGURED:
     st.error("🔴 Gemini AI is not configured correctly (API key missing, invalid, or not replaced in the code?). SQL generation is disabled.", icon="🚫")
-    # st.stop() # Optionally stop the app if key is essential for any function
 
 st.divider()
 
@@ -548,10 +537,11 @@ if 'dmg_end_period' not in st.session_state: st.session_state.dmg_end_period = "
 # AIM Inputs
 if 'aim_db_name' not in st.session_state: st.session_state.aim_db_name = ""
 if 'aim_period' not in st.session_state: st.session_state.aim_period = ""
-# Stale Lease Inputs
-if 'stale_lease_client_db' not in st.session_state: st.session_state.stale_lease_client_db = ""
-if 'stale_lease_provider_id' not in st.session_state: st.session_state.stale_lease_provider_id = ""
-if 'stale_lease_property_ids' not in st.session_state: st.session_state.stale_lease_property_ids = ""
+# Targeted Lease/Unit Removal Inputs
+if 'targeted_client_db' not in st.session_state: st.session_state.targeted_client_db = ""
+if 'targeted_provider_name' not in st.session_state: st.session_state.targeted_provider_name = ""
+if 'targeted_property_ids' not in st.session_state: st.session_state.targeted_property_ids = ""
+if 'targeted_unit_keys' not in st.session_state: st.session_state.targeted_unit_keys = ""
 # File Uploader Key
 if 'uploader_key' not in st.session_state: st.session_state.uploader_key = 0
 
@@ -562,98 +552,125 @@ def reset_state():
     st.session_state.rows_read = 0
     st.session_state.rows_filtered = 0
     st.session_state.processed_identifier = None
-    # Keep input values on operation change *unless* it's the file uploader
-    # st.session_state.dmg_client_db = "" # Decide if you want to clear these too
-    # st.session_state.dmg_start_period = ""
-    # ... etc.
-    st.session_state.uploader_key += 1 # Reset file uploader specifically
+    # Reset file uploader key
+    st.session_state.uploader_key += 1
+    # Optionally clear specific inputs if desired when operation changes
+    # st.session_state.dmg_client_db = ""
+    # ... etc ...
 
 
 # --- Step 1: Select Operation ---
 st.subheader("Step 1: Select Operation Type")
-operation_options = ["Select...", "Property Mapping", "DMG Data Cleanup", "AIM Data Cleanup", "Remove Stale Leases"] # Added new option
+operation_options = [
+    "Select...",
+    "Property Mapping",
+    "DMG Data Cleanup",
+    "AIM Data Cleanup",
+    "Targeted Lease/Unit Removal" # Renamed option
+]
 selected_operation = st.selectbox(
     "Select the task for the AI:", options=operation_options,
     key='operation_selector', on_change=reset_state
 )
 st.session_state.operation = selected_operation
 
-# --- Step 2: Instructions and Inputs ---
+# --- Step 2: Provide Inputs & Instructions ---
 st.subheader("Step 2: Provide Inputs & Instructions")
 
-# Use a container for inputs to group them visually
 input_container = st.container()
 with input_container:
-    # Expander is always visible, content changes based on selection
     with st.expander("ℹ Instructions and Inputs", expanded=True):
         if selected_operation == "Select...":
             st.info("Choose an operation from the dropdown above.")
 
         elif selected_operation == "Property Mapping":
+            # (Instructions same as before)
             st.markdown(f"""
                 **Instructions for Property Mapping (AI Generated):**
                 1.  Upload an Excel file (`.xlsx` or `.xls`).
-                2.  The file MUST contain the following headers (case-insensitive, order doesn't matter): `{', '.join(REQUIRED_HEADERS_PM)}`.
-                3.  The AI will filter rows where:
-                    *   `Source_Pty_Id`, `AIM Code`, and `Ext_Id` are identical and not blank.
-                    *   `Pty_iTarget_Pty_Idd` contains a valid number.
-                4.  A script will be generated to insert these filtered rows into `admin.PropertyMapping` if they don't already exist based on `Source_Pty_Id` and `Target_Pty_Id`.
+                2.  The file MUST contain the headers: `{', '.join(REQUIRED_HEADERS_PM)}` (case-insensitive).
+                3.  The AI filters rows where `Source_Pty_Id`, `AIM Code`, `Ext_Id` are identical (and non-blank), and `Pty_iTarget_Pty_Idd` is numeric.
+                4.  A script inserts these rows into `admin.PropertyMapping` if they don't exist.
             """)
             st.markdown("**Download Template:**")
             st.download_button(label="📄 Download Property Mapping Template (.xlsx)", data=get_template_excel_bytes(), file_name="PropertyMapping_Template.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
             st.markdown("---")
-            uploaded_file = st.file_uploader("Upload your completed Excel file", type=['xlsx', 'xls'], key=f"uploader_{st.session_state.uploader_key}", help="Ensure the file follows the template structure and required headers are present.")
+            uploaded_file = st.file_uploader("Upload your completed Excel file", type=['xlsx', 'xls'], key=f"uploader_{st.session_state.uploader_key}", help="Ensure the file follows the template structure.")
 
         elif selected_operation == "DMG Data Cleanup":
+            # (Instructions same as before)
             st.markdown("""
                 **Instructions for DMG Data Cleanup (AI Generated):**
                 1.  Provide the exact **Client Database Name**.
-                2.  Provide the **Start Period** and **End Period** in `YYYYMMDD` format.
-                3.  The AI will generate a script to:
-                    *   Show records from `CashFlow` joined with `Entity` where `EntityType = 'Asset'` and `Period` is between the provided dates.
-                    *   **DELETE** those records from `CashFlow`.
-                    *   Show the count again to verify deletion.
-                **WARNING:** This script performs deletions. Review carefully.
+                2.  Provide **Start Period** and **End Period** (`YYYYMMDD`).
+                3.  The AI generates a script to show, **DELETE**, and verify deletion of `CashFlow` records where `EntityType = 'Asset'` and `Period` is between the dates.
+                **WARNING:** Performs deletions. Review carefully.
             """)
             st.markdown("---")
-            st.session_state.dmg_client_db = st.text_input("Client Database Name:", key="dmg_db_input", value=st.session_state.dmg_client_db, placeholder="e.g., AegonDQSI", help="Enter the exact name of the target database.")
+            st.session_state.dmg_client_db = st.text_input("Client Database Name:", key="dmg_db_input", value=st.session_state.dmg_client_db, placeholder="e.g., AegonDQSI")
             col1, col2 = st.columns(2)
-            with col1: st.session_state.dmg_start_period = st.text_input("Start Period (YYYYMMDD):", key="dmg_start_input", value=st.session_state.dmg_start_period, placeholder="e.g., 20240101", max_chars=8, help="Inclusive start date.")
-            with col2: st.session_state.dmg_end_period = st.text_input("End Period (YYYYMMDD):", key="dmg_end_input", value=st.session_state.dmg_end_period, placeholder="e.g., 20240331", max_chars=8, help="Inclusive end date.")
+            with col1: st.session_state.dmg_start_period = st.text_input("Start Period (YYYYMMDD):", key="dmg_start_input", value=st.session_state.dmg_start_period, placeholder="e.g., 20240101", max_chars=8)
+            with col2: st.session_state.dmg_end_period = st.text_input("End Period (YYYYMMDD):", key="dmg_end_input", value=st.session_state.dmg_end_period, placeholder="e.g., 20240331", max_chars=8)
 
         elif selected_operation == "AIM Data Cleanup":
+            # (Instructions same as before)
             st.markdown("""
                 **Instructions for AIM Data Cleanup (AI Generated):**
                 1.  Provide the exact **AIM Database Name**.
-                2.  Provide the specific **Period** in `YYYYMTHMM` format (case-insensitive 'MTH', e.g., `2025MTH01`).
-                3.  The AI will generate a script to:
-                    *   Show records from `line_item` for the given `period` where `item_typ_id` exists in the `account` table (`acct_id`).
-                    *   **DELETE** those records from `line_item`.
-                    *   Show the count again to verify deletion.
-                **WARNING:** This script performs deletions. Review carefully.
+                2.  Provide the **Period** (`YYYYMTHMM`, e.g., `2025MTH01`).
+                3.  The AI generates a script to show, **DELETE**, and verify deletion of `line_item` records for the `period` where `item_typ_id` exists in `account` (`acct_id`).
+                **WARNING:** Performs deletions. Review carefully.
             """)
             st.markdown("---")
-            st.session_state.aim_db_name = st.text_input("AIM Database Name:", key="aim_db_input", value=st.session_state.aim_db_name, placeholder="e.g., aim_1019", help="Enter the exact name of the AIM database.")
-            st.session_state.aim_period = st.text_input("Period (YYYYMTHMM):", key="aim_period_input", value=st.session_state.aim_period, placeholder="e.g., 2025MTH01", max_chars=9, help="Enter the specific period (case-insensitive 'MTH').")
+            st.session_state.aim_db_name = st.text_input("AIM Database Name:", key="aim_db_input", value=st.session_state.aim_db_name, placeholder="e.g., aim_1019")
+            st.session_state.aim_period = st.text_input("Period (YYYYMTHMM):", key="aim_period_input", value=st.session_state.aim_period, placeholder="e.g., 2025MTH01", max_chars=9)
 
-        elif selected_operation == "Remove Stale Leases":
+        elif selected_operation == "Targeted Lease/Unit Removal":
             st.markdown("""
-                **Instructions for Remove Stale Leases (AI Generated):**
+                **Instructions for Targeted Lease/Unit Removal (AI Generated):**
                 1.  Provide the exact **Client Database Name**.
-                2.  Provide the **Provider ID** for which to remove data.
-                3.  Optionally, provide a list of specific **Property IDs** (one per line or comma-separated). If left blank, the script will target **ALL** properties associated with the Provider ID.
-                4.  The AI will generate a script to:
-                    *   Find the `ClientProviderKey` for the given `ProviderID`.
-                    *   Identify the relevant `PropertyKey`(s) based on the provided `PropertyID`(s) or all for the provider.
-                    *   Show pre-deletion counts for affected records in `RecurringBilling`, `RentEscalation`, `LeaseUnit`, `SecurityDeposit`, `LegalClause`, `Lease`, and `Unit` tables linked to the identified properties and provider.
-                    *   **DELETE** records from these tables in the correct order.
+                2.  Provide the exact **Provider Name** (e.g., `MAPP`).
+                3.  Provide the list of **Property IDs** (comma or newline separated, e.g., `VEF91401, VEF91404`). **Required**.
+                4.  Provide the list of specific **Unit Keys** to remove (comma or newline separated integers, e.g., `125265, 125072`). **Required**.
+                5.  The AI will generate a script based *exactly* on the provided example logic:
+                    *   Find `ClientProviderKey` from `ProviderName`.
+                    *   Use a temp table `#Properties` for the given `PropertyIDs`.
+                    *   Show pre-deletion counts: Lease-related tables (`RB`, `RE`, `LU`, `SD`, `LC`, `Lease`) filtered by `#Properties` and `ClientProviderKey`. `Unit` table filtered by `#Properties` and the specific `UnitKeys`.
+                    *   **DELETE** records following the same filtering logic and order.
                     *   Show post-deletion counts to verify.
-                **WARNING:** This script performs deletions across multiple tables. Review VERY carefully.
+                **WARNING:** This script performs **highly specific deletions** across multiple tables based on **all** provided inputs. Review the logic and the generated script VERY carefully. Ensure the inputs match the intended scope precisely.
             """)
             st.markdown("---")
-            st.session_state.stale_lease_client_db = st.text_input("Client Database Name:", key="stale_lease_db_input", value=st.session_state.stale_lease_client_db, placeholder="e.g., ARESDQSI", help="Enter the exact name of the target client database.")
-            st.session_state.stale_lease_provider_id = st.text_input("Provider ID:", key="stale_lease_provider_input", value=st.session_state.stale_lease_provider_id, placeholder="e.g., 202", help="Enter the Provider ID.")
-            st.session_state.stale_lease_property_ids = st.text_area("Property IDs (Optional):", key="stale_lease_properties_input", value=st.session_state.stale_lease_property_ids, placeholder="Enter Property IDs, one per line or comma-separated (e.g., VEF91401, VEF91404). Leave blank for ALL properties under the Provider ID.", height=100, help="Leave blank to target all properties for the specified Provider ID.")
+            st.session_state.targeted_client_db = st.text_input(
+                "Client Database Name:",
+                key="targeted_db_input",
+                value=st.session_state.targeted_client_db,
+                placeholder="e.g., ARESDQSI",
+                help="Enter the exact name of the target client database."
+            )
+            st.session_state.targeted_provider_name = st.text_input(
+                "Provider Name:",
+                key="targeted_provider_name_input",
+                value=st.session_state.targeted_provider_name,
+                placeholder="e.g., MAPP",
+                help="Enter the exact Provider Name."
+            )
+            st.session_state.targeted_property_ids = st.text_area(
+                "Property IDs (Required):",
+                key="targeted_properties_input",
+                value=st.session_state.targeted_property_ids,
+                placeholder="Enter Property IDs, one per line or comma-separated (e.g., VEF91401, VEF91404).",
+                height=100,
+                help="Required. List the specific Property IDs."
+            )
+            st.session_state.targeted_unit_keys = st.text_area(
+                "Unit Keys (Required):",
+                key="targeted_units_input",
+                value=st.session_state.targeted_unit_keys,
+                placeholder="Enter Unit Keys, one per line or comma-separated (e.g., 125265, 125072, 125266). Must be integers.",
+                height=100,
+                help="Required. List the specific integer Unit Keys to be deleted."
+            )
 
 
 # --- Step 3: Generate Script ---
@@ -665,18 +682,18 @@ can_process = False; inputs_provided = False
 if selected_operation == "Property Mapping" and 'uploaded_file' in locals() and uploaded_file is not None: inputs_provided = True
 elif selected_operation == "DMG Data Cleanup" and st.session_state.dmg_client_db and st.session_state.dmg_start_period and st.session_state.dmg_end_period: inputs_provided = True
 elif selected_operation == "AIM Data Cleanup" and st.session_state.aim_db_name and st.session_state.aim_period: inputs_provided = True
-elif selected_operation == "Remove Stale Leases" and st.session_state.stale_lease_client_db and st.session_state.stale_lease_provider_id: inputs_provided = True # Property IDs are optional
+elif selected_operation == "Targeted Lease/Unit Removal" and st.session_state.targeted_client_db and st.session_state.targeted_provider_name and st.session_state.targeted_property_ids and st.session_state.targeted_unit_keys: inputs_provided = True # All are required now
 
 can_process = GEMINI_CONFIGURED and inputs_provided
 
 process_button = st.button(
     "🤖 Generate AI Script", disabled=not can_process,
-    help="Requires AI to be configured correctly in the code and all necessary inputs provided for the selected operation."
+    help="Requires AI configuration and all necessary inputs for the selected operation."
 )
 
 # --- Processing Logic ---
 if process_button and can_process:
-    # Clear previous results before starting new processing
+    # Clear previous results
     st.session_state.generated_sql = None
     st.session_state.error_message = None
     st.session_state.rows_read = 0
@@ -697,19 +714,24 @@ if process_button and can_process:
             sql, err = process_aim_cleanup(st.session_state.aim_db_name, st.session_state.aim_period)
             st.session_state.generated_sql = sql; st.session_state.error_message = err
             st.session_state.processed_identifier = f"DB: {st.session_state.aim_db_name}, Period: {st.session_state.aim_period}"
-        elif selected_operation == "Remove Stale Leases":
-            sql, err = process_stale_lease_removal(st.session_state.stale_lease_client_db, st.session_state.stale_lease_provider_id, st.session_state.stale_lease_property_ids)
+        elif selected_operation == "Targeted Lease/Unit Removal":
+            sql, err = process_targeted_lease_unit_removal(
+                st.session_state.targeted_client_db,
+                st.session_state.targeted_provider_name,
+                st.session_state.targeted_property_ids,
+                st.session_state.targeted_unit_keys
+            )
             st.session_state.generated_sql = sql; st.session_state.error_message = err
-            prop_desc = "specific properties" if st.session_state.stale_lease_property_ids.strip() else "all properties"
-            st.session_state.processed_identifier = f"DB: {st.session_state.stale_lease_client_db}, Provider: {st.session_state.stale_lease_provider_id} ({prop_desc})"
+            prop_count = len([p for p in re.split(r'[,\n]', st.session_state.targeted_property_ids) if p.strip()])
+            unit_count = len([u for u in re.split(r'[,\n]', st.session_state.targeted_unit_keys) if u.strip()])
+            st.session_state.processed_identifier = f"DB: {st.session_state.targeted_client_db}, Provider: {st.session_state.targeted_provider_name}, Props: {prop_count}, Units: {unit_count}"
 
-    # Use rerun to ensure the UI updates *after* state is fully set
-    st.rerun()
+    st.rerun() # Rerun to display results
 
 
 # --- Step 4: Results ---
 st.divider()
-results_container = st.container() # Group results
+results_container = st.container()
 with results_container:
     st.subheader("📊 AI Generation Results")
     if st.session_state.operation != "Select..." and st.session_state.processed_identifier is not None:
@@ -720,11 +742,10 @@ with results_container:
         if st.session_state.generated_sql:
             st.success(f"✅ Gemini AI successfully generated the SQL script!", icon="✨")
 
-            # Enhanced Warning for Delete Scripts
-            is_delete_script = "DELETE FROM" in st.session_state.generated_sql.upper()
+            is_delete_script = "DELETE " in st.session_state.generated_sql.upper() # Broader check
             if is_delete_script:
-                 if op_done == "Remove Stale Leases":
-                    st.error("🔥🔥🔥 **EXTREME CAUTION: REVIEW MULTI-TABLE DELETE SCRIPT BELOW VERY CAREFULLY BEFORE EXECUTION!** 🔥🔥🔥", icon="🚨")
+                 if op_done == "Targeted Lease/Unit Removal":
+                    st.error("🔥🔥🔥 **EXTREME CAUTION: REVIEW TARGETED MULTI-TABLE DELETE SCRIPT BELOW VERY CAREFULLY BEFORE EXECUTION! VERIFY INPUTS AND LOGIC MATCH INTENT.** 🔥🔥🔥", icon="🚨")
                  else:
                     st.warning("🔥 **CAUTION: REVIEW DELETE SCRIPT BELOW VERY CAREFULLY BEFORE EXECUTION!** 🔥", icon="❗")
             else:
@@ -734,15 +755,13 @@ with results_container:
             if op_done == "Property Mapping":
                 m_col1, m_col2, m_col3 = st.columns(3)
                 m_col1.metric("Rows Read (Input)", st.session_state.rows_read); m_col2.metric("Rows Filtered (Sent to AI)", st.session_state.rows_filtered); m_col3.metric("AI Script Generated", "Yes")
-            elif op_done in ["DMG Data Cleanup", "AIM Data Cleanup", "Remove Stale Leases"]:
-                 st.metric("AI Script Generated", "Yes", help="Script includes pre/post checks and DELETE operations.")
-            else: # Fallback for other potential future types
+            elif op_done in ["DMG Data Cleanup", "AIM Data Cleanup", "Targeted Lease/Unit Removal"]:
+                 st.metric("AI Script Generated", "Yes", help="Script includes pre/post checks and DELETE operations based on inputs.")
+            else:
                  st.metric("AI Script Generated", "Yes")
 
-            # Display SQL Code Block
             st.code(st.session_state.generated_sql, language="sql")
 
-            # Download Button
             file_name = f"AI_{op_done.replace(' ', '')}_Script_{datetime.now().strftime('%Y%m%d_%H%M%S')}.sql"
             st.download_button(
                 label=f"📥 Download Generated SQL Script",
@@ -753,7 +772,7 @@ with results_container:
             )
 
         elif st.session_state.error_message:
-            # Handle specific non-error message for Property Mapping
+            # Handle specific non-error for Property Mapping
             if "No matching rows" in st.session_state.error_message and op_done == "Property Mapping":
                 st.warning(f"⚠️ {st.session_state.error_message}. No data was sent to the AI for script generation.")
                 m_col1, m_col2, m_col3 = st.columns(3)
@@ -761,31 +780,28 @@ with results_container:
             # Handle general errors
             else:
                  st.error(f"❌ AI script generation failed. Error: {st.session_state.error_message}", icon="💔")
-                 if "AI request blocked" in st.session_state.error_message:
-                     st.info("The request might have been blocked due to safety settings, prompt issues, or API restrictions. Check the AI console or logs if possible.")
-                 elif "AI not configured" in st.session_state.error_message:
-                     st.info("Check that the API key is correctly placed and valid in the script code.")
+                 if "AI request blocked" in st.session_state.error_message: st.info("The request might have been blocked due to safety settings, prompt issues, or API restrictions.")
+                 elif "AI not configured" in st.session_state.error_message: st.info("Check that the API key is correctly placed and valid in the script code.")
+                 elif "Missing required inputs" in st.session_state.error_message: st.info(f"Ensure all required fields for '{op_done}' are filled correctly.")
+                 elif "Invalid" in st.session_state.error_message: st.info(f"Check the format of the inputs provided for '{op_done}'. {st.session_state.error_message}")
 
-                 # Show relevant metrics even on failure if available
+
                  if op_done == "Property Mapping" and st.session_state.rows_read > 0:
                      m_col1, m_col2, m_col3 = st.columns(3)
                      rows_filtered_display = st.session_state.rows_filtered if st.session_state.rows_filtered > 0 else '0' if 'Header validation failed' not in st.session_state.error_message else 'N/A'
                      m_col1.metric("Rows Read", st.session_state.rows_read); m_col2.metric("Rows Filtered", rows_filtered_display); m_col3.metric("AI Script Generated", "No")
                  else:
-                     st.metric("AI Script Generated", "No") # General failure case
+                     st.metric("AI Script Generated", "No")
 
         else:
-            # This case should ideally not happen if processing ran, but as a fallback
             st.info("Processing initiated, but no script or specific error message was generated. Check inputs or logs.")
 
     elif st.session_state.operation != "Select...":
-        # Case where operation is selected, but button wasn't clicked or inputs were missing
         st.info(f"Provide the required inputs for '{st.session_state.operation}' above and click 'Generate AI Script'.")
     else:
-        # Initial state
         st.info("Select an operation, provide inputs, and click 'Generate AI Script' to see results.")
 
 
 # --- Footer ---
 st.divider()
-st.caption(f"AI SQL Generator | Powered by Google Gemini ({model.model_name if GEMINI_CONFIGURED and model else 'N/A'}) | v1.7 (API Key in Code - Stale Lease Added)")
+st.caption(f"AI SQL Generator | Powered by Google Gemini ({model.model_name if GEMINI_CONFIGURED and model else 'N/A'}) | v1.8 (Targeted Lease/Unit Removal Added)")
