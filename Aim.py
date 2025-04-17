@@ -30,7 +30,7 @@ HEADER_ROW_ZERO_INDEXED = 0
 try:
     # ---> PASTE YOUR GOOGLE API KEY HERE <---
     # Replace "YOUR_API_KEY_HERE" with your actual Google API Key
-    GOOGLE_API_KEY = "YOUR_API_KEY_HERE"  # <<< REPLACE THIS WITH YOUR ACTUAL KEY
+    GOOGLE_API_KEY = "AIzaSyCC2LKSvLd7_u6RSsWEAmtHsvZNiUPphoI"  # <<< REPLACE THIS WITH YOUR ACTUAL KEY
 
     if not GOOGLE_API_KEY or GOOGLE_API_KEY == "YOUR_API_KEY_HERE" or GOOGLE_API_KEY == "PASTE_YOUR_GOOGLE_API_KEY_HERE": # Check for placeholder
         st.error("🚨 Google API Key is missing or not replaced in the code! Please paste your key directly into the `GOOGLE_API_KEY` variable.", icon="🔑")
