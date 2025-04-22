@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import streamlit as st
 import pandas as pd
 import io
@@ -39,41 +40,76 @@ def get_template_excel():
     output.seek(0)
     return output
 
-# --- Property Mapping Specific Functions ---
-def generate_property_mapping_sql_block(source_pty_id, target_pty_id, property_name):
-    """Generates the SQL block for a single valid Property Mapping row."""
-    safe_source_pty_id = escape_sql_string(source_pty_id)
-    safe_property_name = escape_sql_string(property_name)
+# --- Property Mapping Specific SQL Generation Functions ---
 
-    # Ensure target_pty_id is treated as a number (remove potential quotes if accidentally added)
-    try:
-        numeric_target_pty_id = int(target_pty_id)
-    except (ValueError, TypeError):
-        # Handle cases where conversion fails, maybe log or raise error?
-        # For now, let's try to proceed, assuming it might already be numeric,
-        # but this indicates a potential data issue upstream.
-        numeric_target_pty_id = target_pty_id # Fallback, might cause SQL error if not numeric
+def generate_sql_property_name_check(property_names):
+    """Generates the 'SELECT * FROM Property' block."""
+    if not property_names:
+        return "-- No valid property names found in the filtered data to generate Property check."
+
+    escaped_names = [f"'{escape_sql_string(name)}'" for name in property_names]
+    in_clause = ",\n".join(escaped_names)
 
     return f"""
--- Property: {safe_property_name} (Source ID: {safe_source_pty_id})
-SELECT * FROM admin.PropertyMapping WHERE Source_Pty_Id = '{safe_source_pty_id}' AND Target_Pty_Id = {numeric_target_pty_id};
-
-IF NOT EXISTS (SELECT * FROM admin.PropertyMapping WHERE Source_Pty_Id = '{safe_source_pty_id}' AND Target_Pty_Id = {numeric_target_pty_id})
-BEGIN
-    INSERT INTO admin.PropertyMapping (Source_Pty_Id, Target_Pty_Id, Active, Created)
-    VALUES ('{safe_source_pty_id}', {numeric_target_pty_id}, 1, GETDATE());
-END
-
-SELECT * FROM admin.PropertyMapping WHERE Source_Pty_Id = '{safe_source_pty_id}' AND Target_Pty_Id = {numeric_target_pty_id};
-
+-- Check if Target Properties exist by Name
+SELECT * FROM Property
+WHERE name_txt IN (
+{in_clause}
+);
+GO
 """
 
+def generate_sql_mapping_checks(filtered_df, source_col, target_col):
+    """Generates the block of SELECT statements to check existing mappings."""
+    if filtered_df.empty:
+        return "-- No rows to generate mapping checks."
+
+    select_statements = []
+    for index, row in filtered_df.iterrows():
+        safe_source_id = escape_sql_string(str(row[source_col]).strip())
+        # Target ID should already be validated as numeric and converted to int
+        target_id = int(row[target_col])
+        select_statements.append(f"SELECT * FROM admin.PropertyMapping WHERE Source_Pty_Id = '{safe_source_id}' AND Target_Pty_Id = {target_id};")
+
+    return "\n".join(select_statements) + "\nGO\n"
+
+def generate_sql_mapping_inserts(filtered_df, source_col, target_col, name_col):
+    """Generates the block of IF NOT EXISTS...INSERT statements."""
+    if filtered_df.empty:
+        return "-- No rows to generate mapping inserts."
+
+    insert_blocks = []
+    for index, row in filtered_df.iterrows():
+        safe_source_id = escape_sql_string(str(row[source_col]).strip())
+        target_id = int(row[target_col]) # Assumes already validated int
+        safe_name = escape_sql_string(str(row[name_col]).strip()) # For comment
+
+        insert_blocks.append(f"""
+-- Map: {safe_name} (Source: {safe_source_id} -> Target: {target_id})
+IF NOT EXISTS (SELECT * FROM admin.PropertyMapping WHERE Source_Pty_Id = '{safe_source_id}' AND Target_Pty_Id = {target_id})
+BEGIN
+    INSERT INTO admin.PropertyMapping (Source_Pty_Id, Target_Pty_Id, Active, Created)
+    VALUES ('{safe_source_id}', {target_id}, 1, GETDATE());
+    PRINT 'Mapping inserted for Source_Pty_Id = ''{safe_source_id}'' AND Target_Pty_Id = {target_id}';
+END
+ELSE
+BEGIN
+    PRINT 'Mapping already exists for Source_Pty_Id = ''{safe_source_id}'' AND Target_Pty_Id = {target_id}';
+END
+""")
+        # Adding a GO after each IF EXISTS block might be too much depending on execution context.
+        # Usually, you group them and have GO separators between logical batches.
+        # Let's add GO after the entire block instead.
+
+    return "\n".join(insert_blocks) + "\nGO\n"
+
+# --- Property Mapping Processing Function ---
 def process_property_mapping(uploaded_file):
     """Handles the entire process for the Property Mapping option."""
     # Reset state variables for this run
     st.session_state.processed_data = None
     st.session_state.error_message = None
-    st.session_state.queries_generated = 0
+    st.session_state.queries_generated = 0 # Represents rows processed for mapping
     st.session_state.rows_read = 0
     st.session_state.rows_filtered = 0
     st.session_state.file_name_processed = uploaded_file.name # Store filename for display
@@ -98,20 +134,18 @@ def process_property_mapping(uploaded_file):
         # --- Stage 1: Read Excel File ---
         file_content = io.BytesIO(uploaded_file.getvalue())
         status_placeholder.info("Reading headers...")
-        # Use openpyxl for broader compatibility if available, fallback to default
         try:
             df_header_check = pd.read_excel(file_content, header=HEADER_ROW_ZERO_INDEXED, nrows=0, engine='openpyxl')
         except ImportError:
             st.warning("openpyxl not found, using default engine. Consider installing openpyxl (`pip install openpyxl`) for better .xlsx support.", icon="⚠️")
-            file_content.seek(0) # Reset stream position
-            df_header_check = pd.read_excel(file_content, header=HEADER_ROW_ZERO_INDEXED, nrows=0) # Default engine
+            file_content.seek(0)
+            df_header_check = pd.read_excel(file_content, header=HEADER_ROW_ZERO_INDEXED, nrows=0)
 
         actual_headers = df_header_check.columns.tolist()
-
-        header_map = {hdr.lower().strip(): hdr for hdr in actual_headers} # Use lower + strip for robust matching
+        header_map = {hdr.lower().strip(): hdr for hdr in actual_headers}
         col_indices = {}
         missing_cols = []
-        found_cols_display = [] # For nicer display
+        found_cols_display = []
 
         # --- Stage 2: Validate Headers ---
         status_placeholder.info("Validating headers for Property Mapping...")
@@ -126,15 +160,14 @@ def process_property_mapping(uploaded_file):
                 missing_cols.append(f"  ❌ Missing **'{req_hdr}'**")
                 all_found = False
 
-        # Display header validation results clearly
         with st.expander("Header Validation Details", expanded=not all_found):
             st.markdown("\n".join(found_cols_display + missing_cols))
 
         if not all_found:
             st.error(f"Header validation failed. Could not find all required headers in Row {HEADER_ROW_ZERO_INDEXED + 1}.")
-            st.session_state.error_message = f"Missing required headers: {', '.join([h.split('**')[1] for h in missing_cols])}" # Extract names
-            status_placeholder.empty() # Clear status message
-            return # Stop processing
+            st.session_state.error_message = f"Missing required headers: {', '.join([h.split('**')[1] for h in missing_cols])}"
+            status_placeholder.empty()
+            return
 
         st.success("Header validation successful!")
 
@@ -143,19 +176,14 @@ def process_property_mapping(uploaded_file):
         file_content.seek(0)
         try:
             df = pd.read_excel(
-                file_content,
-                header=HEADER_ROW_ZERO_INDEXED,
-                usecols=list(col_indices.values()),
-                dtype=str, # Read all as string initially
-                engine='openpyxl'
+                file_content, header=HEADER_ROW_ZERO_INDEXED,
+                usecols=list(col_indices.values()), dtype=str, engine='openpyxl'
             )
         except ImportError:
              file_content.seek(0)
              df = pd.read_excel(
-                 file_content,
-                 header=HEADER_ROW_ZERO_INDEXED,
-                 usecols=list(col_indices.values()),
-                 dtype=str # Read all as string initially
+                 file_content, header=HEADER_ROW_ZERO_INDEXED,
+                 usecols=list(col_indices.values()), dtype=str
              )
 
         df = df.fillna('') # Replace Pandas NaN/NaT with empty strings
@@ -163,77 +191,74 @@ def process_property_mapping(uploaded_file):
         status_placeholder.info(f"Read {st.session_state.rows_read} data rows. Applying filters...")
 
         # --- Stage 4: Data Processing and Filtering ---
-        # Rename columns to standard names for easier processing
         reverse_header_map = {v: k for k, v in col_indices.items()}
         df_processed = df.rename(columns=reverse_header_map)
 
-        # Clean data before filtering
         df_processed[COL_SOURCE_ID_HDR] = df_processed[COL_SOURCE_ID_HDR].astype(str).str.strip()
         df_processed[COL_AIM_CODE_HDR] = df_processed[COL_AIM_CODE_HDR].astype(str).str.strip()
         df_processed[COL_EXT_ID_HDR] = df_processed[COL_EXT_ID_HDR].astype(str).str.strip()
         df_processed[COL_AIM_NAME_HDR] = df_processed[COL_AIM_NAME_HDR].astype(str).str.strip()
-        # Convert target ID, coercing errors to NaN for filtering
         df_processed[COL_TARGET_ID_HDR] = pd.to_numeric(df_processed[COL_TARGET_ID_HDR], errors='coerce')
 
-        # Apply Filter Logic specific to Property Mapping
-        filter_mask = (df_processed[COL_SOURCE_ID_HDR] != '') # Source ID must not be blank
+        filter_mask = (df_processed[COL_SOURCE_ID_HDR] != '')
         filter_mask &= (df_processed[COL_SOURCE_ID_HDR] == df_processed[COL_AIM_CODE_HDR])
         filter_mask &= (df_processed[COL_SOURCE_ID_HDR] == df_processed[COL_EXT_ID_HDR])
-        filter_mask &= df_processed[COL_TARGET_ID_HDR].notna() # Target ID must be numeric
+        filter_mask &= df_processed[COL_TARGET_ID_HDR].notna()
 
         filtered_df = df_processed[filter_mask].copy()
 
-        # Convert valid Target IDs to integer *after* filtering
         if not filtered_df.empty:
-             # Use .loc to avoid SettingWithCopyWarning
              filtered_df.loc[:, COL_TARGET_ID_HDR] = filtered_df[COL_TARGET_ID_HDR].astype(int)
 
         st.session_state.rows_filtered = len(filtered_df)
         status_placeholder.info(f"Found {st.session_state.rows_filtered} rows matching filter criteria. Generating SQL...")
 
-        # --- Stage 5: Generate SQL Script ---
+        # --- Stage 5: Generate SQL Script (New Structure) ---
         if not filtered_df.empty:
             sql_blocks = []
-            queries_generated_count = 0
 
             # Add header block to SQL script
             sql_blocks.append(f"-- SQL Script Generated by Streamlit Tool on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
             sql_blocks.append(f"-- Operation Type: Property Mapping")
-            sql_blocks.append(f"-- Target Table: admin.PropertyMapping")
+            sql_blocks.append(f"-- Target Tables: Property, admin.PropertyMapping")
             sql_blocks.append(f"-- Generated from file: {uploaded_file.name}")
             sql_blocks.append(f"-- Filter Condition: {COL_SOURCE_ID_HDR} == {COL_AIM_CODE_HDR} == {COL_EXT_ID_HDR} (non-blank) AND {COL_TARGET_ID_HDR} is numeric")
             sql_blocks.append(f"-- Rows Read: {st.session_state.rows_read}, Rows Filtered: {st.session_state.rows_filtered}")
             sql_blocks.append("-- ======================================================================")
             sql_blocks.append("")
 
-            for index, row in filtered_df.iterrows():
-                # Check for potentially missing values again just in case
-                if pd.notna(row[COL_TARGET_ID_HDR]) and str(row[COL_SOURCE_ID_HDR]).strip() != '':
-                    sql_block = generate_property_mapping_sql_block(
-                        str(row[COL_SOURCE_ID_HDR]).strip(), # Ensure it's string and stripped
-                        int(row[COL_TARGET_ID_HDR]),         # Ensure it's int
-                        str(row[COL_AIM_NAME_HDR]).strip()   # Ensure it's string and stripped
-                    )
-                    sql_blocks.append(sql_block)
-                    queries_generated_count += 1
-                # else: # Optional: Log rows skipped at this stage if needed
-                #    st.warning(f"Skipping row {index+HEADER_ROW_ZERO_INDEXED+1} due to unexpected missing data after filtering.")
+            # Block 1: Check Property Names
+            unique_property_names = filtered_df[COL_AIM_NAME_HDR].dropna().unique().tolist()
+            # Ensure names are actual strings and not just whitespace before adding
+            valid_property_names = [name for name in unique_property_names if isinstance(name, str) and name.strip()]
+            sql_blocks.append(generate_sql_property_name_check(valid_property_names))
 
+            # Block 2: Initial Check Mappings
+            sql_blocks.append("-- Initial check for existing mappings")
+            sql_blocks.append(generate_sql_mapping_checks(filtered_df, COL_SOURCE_ID_HDR, COL_TARGET_ID_HDR))
+
+            # Block 3: Insert Mappings if they don't exist
+            sql_blocks.append("-- Insert mappings if they do not exist")
+            sql_blocks.append(generate_sql_mapping_inserts(filtered_df, COL_SOURCE_ID_HDR, COL_TARGET_ID_HDR, COL_AIM_NAME_HDR))
+
+            # Block 4: Final Check Mappings (Post-Insert Verification)
+            sql_blocks.append("-- Final check for mappings (verify inserts)")
+            sql_blocks.append(generate_sql_mapping_checks(filtered_df, COL_SOURCE_ID_HDR, COL_TARGET_ID_HDR))
 
             final_sql_script = "\n".join(sql_blocks)
             st.session_state.processed_data = final_sql_script
-            st.session_state.queries_generated = queries_generated_count
+            # Count represents the number of mappings attempted (rows in filtered_df)
+            st.session_state.queries_generated = len(filtered_df)
             status_placeholder.success("SQL script generated successfully!")
 
         else:
             status_placeholder.warning("No data rows matched the filter criteria. No SQL script generated.")
-            st.session_state.error_message = "No matching rows found for Property Mapping criteria." # Use this for specific warning display
+            st.session_state.error_message = "No matching rows found for Property Mapping criteria."
             st.session_state.queries_generated = 0
 
     except Exception as e:
         st.error(f"An error occurred during Property Mapping processing:")
         st.error(str(e))
-        # Provide more details in an expander for debugging
         with st.expander("Error Details"):
             st.error(f"Traceback: {traceback.format_exc()}")
         st.session_state.processed_data = None
@@ -245,7 +270,6 @@ def process_property_mapping(uploaded_file):
 # --- DMG Data Cleanup Specific Functions ---
 def generate_dmg_cleanup_sql(client_db, start_period, end_period):
     """Generates the SQL script for DMG Data Cleanup."""
-    # Basic validation (more can be added)
     if not client_db or not start_period or not end_period:
         raise ValueError("Client DB Name, Start Period, and End Period cannot be empty.")
     if not (start_period.isdigit() and len(start_period) == 8 and end_period.isdigit() and len(end_period) == 8):
@@ -253,8 +277,7 @@ def generate_dmg_cleanup_sql(client_db, start_period, end_period):
     if int(start_period) > int(end_period):
         raise ValueError("Start Period cannot be later than End Period.")
 
-    # Escape client DB name in case it contains special characters (though unlikely for DB names)
-    safe_client_db = f"[{client_db.replace(']', ']]')}]" # Basic escaping for brackets
+    safe_client_db = f"[{client_db.replace(']', ']]')}]"
 
     return f"""
 -- SQL Script Generated by Streamlit Tool on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
@@ -264,29 +287,33 @@ def generate_dmg_cleanup_sql(client_db, start_period, end_period):
 -- Filter: EntityType = 'Asset' AND Period BETWEEN {start_period} AND {end_period}
 -- ======================================================================
 
-
 USE {safe_client_db};
 GO
 
+PRINT '--- Before Deletion ---';
+SELECT COUNT(*) AS RecordCount FROM CashFlow C INNER JOIN Entity E ON C.EntityKey = E.EntityKey WHERE E.EntityType = 'Asset' AND C.Period BETWEEN {start_period} AND {end_period};
+-- Optional: Select top N records before delete for inspection
+-- SELECT TOP 10 C.* FROM CashFlow C INNER JOIN Entity E ON C.EntityKey = E.EntityKey WHERE E.EntityType = 'Asset' AND C.Period BETWEEN {start_period} AND {end_period};
+GO
 
-SELECT C.*
-FROM CashFlow C
-INNER JOIN Entity E ON C.EntityKey = E.EntityKey
-WHERE E.EntityType = 'Asset' AND C.Period BETWEEN {start_period} AND {end_period};
-
-
+PRINT '--- Performing Deletion ---';
+BEGIN TRAN;
 DELETE C
 FROM CashFlow C
 INNER JOIN Entity E ON C.EntityKey = E.EntityKey
 WHERE E.EntityType = 'Asset' AND C.Period BETWEEN {start_period} AND {end_period};
+PRINT 'Deleted ' + CAST(@@ROWCOUNT AS VARCHAR) + ' records.';
+-- ROLLBACK TRAN; -- Uncomment to test without committing
+COMMIT TRAN; -- Comment out if testing with ROLLBACK
+GO
 
+PRINT '--- After Deletion ---';
+SELECT COUNT(*) AS RecordCount FROM CashFlow C INNER JOIN Entity E ON C.EntityKey = E.EntityKey WHERE E.EntityType = 'Asset' AND C.Period BETWEEN {start_period} AND {end_period};
+-- Optional: Select top N records after delete to verify
+-- SELECT TOP 10 C.* FROM CashFlow C INNER JOIN Entity E ON C.EntityKey = E.EntityKey WHERE E.EntityType = 'Asset' AND C.Period BETWEEN {start_period} AND {end_period};
+GO
 
-SELECT C.*
-FROM CashFlow C
-INNER JOIN Entity E ON C.EntityKey = E.EntityKey
-WHERE E.EntityType = 'Asset' AND C.Period BETWEEN {start_period} AND {end_period};
-
-
+PRINT '--- DMG Cleanup Script Complete ---';
 GO
 """
 
@@ -295,7 +322,6 @@ def process_dmg_cleanup(client_db, start_period, end_period):
     st.session_state.processed_data = None
     st.session_state.error_message = None
     st.session_state.queries_generated = 0
-    # Reset file-specific state
     st.session_state.rows_read = 0
     st.session_state.rows_filtered = 0
     st.session_state.file_name_processed = None
@@ -303,10 +329,9 @@ def process_dmg_cleanup(client_db, start_period, end_period):
     status_placeholder = st.empty()
     try:
         status_placeholder.info(f"Validating inputs for DMG Cleanup: DB='{client_db}', Period='{start_period}-{end_period}'")
-        # Generate SQL
         final_sql_script = generate_dmg_cleanup_sql(client_db, start_period, end_period)
         st.session_state.processed_data = final_sql_script
-        st.session_state.queries_generated = 1 # Typically generates one logical script block
+        st.session_state.queries_generated = 1 # Represents one script block
         status_placeholder.success("DMG Cleanup SQL script generated successfully!")
 
     except ValueError as ve:
@@ -324,15 +349,13 @@ def process_dmg_cleanup(client_db, start_period, end_period):
 # --- AIM Data Cleanup Specific Functions ---
 def generate_aim_cleanup_sql(aim_db, period):
     """Generates the SQL script for AIM Data Cleanup."""
-    # Basic validation
     if not aim_db or not period:
         raise ValueError("AIM Database Name and Period cannot be empty.")
-    # Regex to check for YYYYMTHMM format (case-insensitive MTH)
     if not re.fullmatch(r"^\d{4}[Mm][Tt][Hh]\d{2}$", period):
          raise ValueError("Period must be in YYYYMTHMM format (e.g., 2025MTH01).")
 
     safe_aim_db = f"[{aim_db.replace(']', ']]')}]"
-    safe_period = escape_sql_string(period) # Escape potential quotes in period
+    safe_period = escape_sql_string(period)
 
     return f"""
 -- SQL Script Generated by Streamlit Tool on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
@@ -342,28 +365,38 @@ def generate_aim_cleanup_sql(aim_db, period):
 -- Filter: item_typ_id IN (SELECT acct_id FROM account) AND period = '{safe_period}'
 -- ======================================================================
 
-
 USE {safe_aim_db};
 GO
 
-
-SELECT *
+PRINT '--- Before Deletion ---';
+SELECT COUNT(*) AS RecordCount
 FROM line_item
 WHERE item_typ_id IN (SELECT acct_id FROM account)
   AND period = '{safe_period}';
+-- Optional: Select top N records before delete for inspection
+-- SELECT TOP 10 * FROM line_item WHERE item_typ_id IN (SELECT acct_id FROM account) AND period = '{safe_period}';
+GO
 
-
+PRINT '--- Performing Deletion ---';
+BEGIN TRAN;
 DELETE FROM line_item
 WHERE item_typ_id IN (SELECT acct_id FROM account)
   AND period = '{safe_period}';
+PRINT 'Deleted ' + CAST(@@ROWCOUNT AS VARCHAR) + ' records.';
+-- ROLLBACK TRAN; -- Uncomment to test without committing
+COMMIT TRAN; -- Comment out if testing with ROLLBACK
+GO
 
-
-SELECT *
+PRINT '--- After Deletion ---';
+SELECT COUNT(*) AS RecordCount
 FROM line_item
 WHERE item_typ_id IN (SELECT acct_id FROM account)
   AND period = '{safe_period}';
+-- Optional: Select top N records after delete to verify
+-- SELECT TOP 10 * FROM line_item WHERE item_typ_id IN (SELECT acct_id FROM account) AND period = '{safe_period}';
+GO
 
-
+PRINT '--- AIM Cleanup Script Complete ---';
 GO
 """
 
@@ -372,7 +405,6 @@ def process_aim_cleanup(aim_db, period):
     st.session_state.processed_data = None
     st.session_state.error_message = None
     st.session_state.queries_generated = 0
-    # Reset file-specific state
     st.session_state.rows_read = 0
     st.session_state.rows_filtered = 0
     st.session_state.file_name_processed = None
@@ -380,10 +412,9 @@ def process_aim_cleanup(aim_db, period):
     status_placeholder = st.empty()
     try:
         status_placeholder.info(f"Validating inputs for AIM Cleanup: DB='{aim_db}', Period='{period}'")
-        # Generate SQL
         final_sql_script = generate_aim_cleanup_sql(aim_db, period)
         st.session_state.processed_data = final_sql_script
-        st.session_state.queries_generated = 1 # Typically generates one logical script block
+        st.session_state.queries_generated = 1 # Represents one script block
         status_placeholder.success("AIM Cleanup SQL script generated successfully!")
 
     except ValueError as ve:
@@ -408,15 +439,15 @@ if 'processed_data' not in st.session_state:
 if 'error_message' not in st.session_state:
     st.session_state.error_message = None
 if 'queries_generated' not in st.session_state:
-    st.session_state.queries_generated = 0
-if 'rows_read' not in st.session_state: # Still useful for Property Mapping
+    st.session_state.queries_generated = 0 # Represents rows for Prop Map, 1 for Cleanup scripts
+if 'rows_read' not in st.session_state:
     st.session_state.rows_read = 0
-if 'rows_filtered' not in st.session_state: # Still useful for Property Mapping
+if 'rows_filtered' not in st.session_state:
     st.session_state.rows_filtered = 0
-if 'file_name_processed' not in st.session_state: # Specific to file uploads
+if 'file_name_processed' not in st.session_state:
     st.session_state.file_name_processed = None
 if 'current_operation' not in st.session_state:
-    st.session_state.current_operation = None # Track the operation for which results are shown
+    st.session_state.current_operation = None
 if 'dmg_client_db' not in st.session_state:
     st.session_state.dmg_client_db = ""
 if 'dmg_start_period' not in st.session_state:
@@ -427,8 +458,10 @@ if 'aim_db_name' not in st.session_state:
     st.session_state.aim_db_name = ""
 if 'aim_period' not in st.session_state:
     st.session_state.aim_period = ""
-if 'uploaded_file_key' not in st.session_state: # To help reset file uploader
+if 'uploaded_file_key' not in st.session_state:
     st.session_state.uploaded_file_key = 0
+if 'sql_file_name_input' not in st.session_state: # For custom file name download
+     st.session_state.sql_file_name_input = ""
 
 st.title("🏢 SQL Script Generator")
 st.markdown("Automate SQL script creation from Excel files or inputs for specific operations.")
@@ -440,7 +473,7 @@ operation_options = [
     "Property Mapping",
     "DMG Data Cleanup",
     "AIM Data Cleanup",
-    # "User Access Update (Future)", # Keep placeholders if needed
+    # "User Access Update (Future)",
     # "Data Cleanup Task (Future)"
 ]
 
@@ -459,6 +492,7 @@ def reset_state_on_operation_change():
     st.session_state.dmg_end_period = ""
     st.session_state.aim_db_name = ""
     st.session_state.aim_period = ""
+    st.session_state.sql_file_name_input = "" # Reset custom filename input
     # Increment file uploader key to force reset if needed
     st.session_state.uploaded_file_key += 1
 
@@ -466,13 +500,13 @@ def reset_state_on_operation_change():
 selected_operation = st.selectbox(
     "Select the task you want to perform:",
     options=operation_options,
-    index=0, # Default to the first option
+    index=0,
     key="operation_selector",
-    on_change=reset_state_on_operation_change # Use the callback
+    on_change=reset_state_on_operation_change
 )
 
 # --- Instructions & Template/Inputs ---
-with st.expander("ℹ Instructions and Inputs", expanded=True): # Default to expanded
+with st.expander("ℹ Instructions and Inputs", expanded=True):
     st.markdown(f"**Selected Operation: {selected_operation}**")
     st.markdown("---")
 
@@ -483,7 +517,7 @@ with st.expander("ℹ Instructions and Inputs", expanded=True): # Default to exp
 
             1.  **Prepare Excel File:** Use a `.xlsx` or `.xls` file.
             2.  **Headers:** Ensure the *first sheet* contains the required headers in **Row {HEADER_ROW_ZERO_INDEXED + 1}**. Header names are case-insensitive but must match the spelling below. Cells in the header row must be *unmerged*.
-                *   **Required Headers:** `{', '.join([f'**{h}**' for h in pm_headers])}`
+                *   Required Headers: `{', '.join([f'**{h}**' for h in pm_headers])}`
             3.  **Template:** Download the template below to ensure the correct structure and header names. Fill it with your data.
             4.  **Upload:** Use the 'Browse files' button in Step 2 to upload your completed file.
             5.  **Validation:** The tool checks if all required headers are present.
@@ -493,7 +527,7 @@ with st.expander("ℹ Instructions and Inputs", expanded=True): # Default to exp
                 *   `Source_Pty_Id` value is **not blank**.
                 *   `Pty_iTarget_Pty_Idd` value is a **valid number**.
             7.  **Generate:** Click the 'Generate Script' button in Step 3.
-            8.  **Download:** If successful, a `.sql` script targeting `admin.PropertyMapping` will be available for download in the Results section.
+            8.  **Download:** If successful, a `.sql` script targeting `Property` and `admin.PropertyMapping` will be available for download. You can customize the filename before downloading in the Results section.
         """)
         st.markdown("**Download Template:**")
         template_excel_bytes = get_template_excel()
@@ -523,9 +557,6 @@ with st.expander("ℹ Instructions and Inputs", expanded=True): # Default to exp
             4.  **Generate:** Click the 'Generate Script' button in Step 3.
             5.  **Download:** If successful, a `.sql` script performing the deletion (with checks before and after) will be available for download. **Review the script carefully before execution.**
         """)
-    # Add elif blocks for other future operations here
-    # elif selected_operation == "User Access Update (Future)":
-    #      st.markdown("**Instructions for User Access Update:**\n\n*   (Details for this future option will be added here.)")
     else:
         st.markdown("Select an operation type above to see specific instructions.")
 
@@ -533,7 +564,7 @@ with st.expander("ℹ Instructions and Inputs", expanded=True): # Default to exp
     st.markdown("""
         **General Support:**
         *   *Developed by:* Monish & Sanju
-        *   *Version:* 1.3 (Streamlit - Added Cleanup Operations)
+        *   *Version:* 1.4 (Streamlit - Updated Prop Mapping SQL, Added Filename Config)
     """)
 
 st.divider()
@@ -541,7 +572,7 @@ st.divider()
 # --- Step 2: Provide Inputs (File or Fields) ---
 st.subheader(f"Step 2: Provide Inputs for '{selected_operation}'")
 
-uploaded_file = None # Initialize for non-file operations
+uploaded_file = None
 dmg_client_db = None
 dmg_start_period = None
 dmg_end_period = None
@@ -552,25 +583,23 @@ if selected_operation == "Property Mapping":
     uploaded_file = st.file_uploader(
         f"Upload your completed Excel file (.xlsx, .xls)",
         type=['xlsx', 'xls'],
-        key=f"uploader_prop_map_{st.session_state.uploaded_file_key}", # Use key to help reset
+        key=f"uploader_prop_map_{st.session_state.uploaded_file_key}",
         help="Ensure the file follows the structure described in the instructions."
     )
-    # Clear previous non-file results if a file is uploaded
     if uploaded_file and uploaded_file.name != st.session_state.get('file_name_processed'):
          st.session_state.update({
              'processed_data': None, 'error_message': None, 'queries_generated': 0,
-             'current_operation': selected_operation
-             # Keep rows_read/filtered etc. as they are relevant here
+             'current_operation': selected_operation, 'sql_file_name_input': "" # Reset filename
          })
 elif selected_operation == "DMG Data Cleanup":
     dmg_client_db = st.text_input(
         "Client Database Name:",
         key="dmg_client_db_input",
-        value=st.session_state.dmg_client_db, # Persist value within session
+        value=st.session_state.dmg_client_db,
         placeholder="e.g., AegonDQSI",
         help="Enter the exact name of the database."
     )
-    st.session_state.dmg_client_db = dmg_client_db # Update session state on input change
+    st.session_state.dmg_client_db = dmg_client_db
 
     col1, col2 = st.columns(2)
     with col1:
@@ -578,8 +607,7 @@ elif selected_operation == "DMG Data Cleanup":
             "Start Period (YYYYMMDD):",
             key="dmg_start_period_input",
             value=st.session_state.dmg_start_period,
-            placeholder="e.g., 20241201",
-            max_chars=8,
+            placeholder="e.g., 20241201", max_chars=8,
             help="Inclusive start date."
         )
         st.session_state.dmg_start_period = dmg_start_period
@@ -588,16 +616,14 @@ elif selected_operation == "DMG Data Cleanup":
             "End Period (YYYYMMDD):",
             key="dmg_end_period_input",
             value=st.session_state.dmg_end_period,
-            placeholder="e.g., 20241231",
-            max_chars=8,
+            placeholder="e.g., 20241231", max_chars=8,
             help="Inclusive end date."
         )
         st.session_state.dmg_end_period = dmg_end_period
 
 elif selected_operation == "AIM Data Cleanup":
     aim_db_name = st.text_input(
-        "AIM Database Name:",
-        key="aim_db_name_input",
+        "AIM Database Name:", key="aim_db_name_input",
         value=st.session_state.aim_db_name,
         placeholder="e.g., aim_1019",
         help="Enter the exact name of the AIM database."
@@ -605,16 +631,12 @@ elif selected_operation == "AIM Data Cleanup":
     st.session_state.aim_db_name = aim_db_name
 
     aim_period = st.text_input(
-        "Period (YYYYMTHMM):",
-        key="aim_period_input",
+        "Period (YYYYMTHMM):", key="aim_period_input",
         value=st.session_state.aim_period,
-        placeholder="e.g., 2025MTH01",
-        max_chars=9, # YYYY MTH MM = 4+3+2 = 9
+        placeholder="e.g., 2025MTH01", max_chars=9,
         help="Enter the specific period in YYYYMTHMM format (case-insensitive 'MTH')."
         )
     st.session_state.aim_period = aim_period
-
-# Add elif for future operations if they need specific inputs
 
 elif selected_operation:
     st.info(f"Input configuration for '{selected_operation}' is not yet implemented or not required.")
@@ -624,7 +646,6 @@ st.divider()
 # --- Step 3: Generate Script ---
 st.subheader("Step 3: Generate SQL Script")
 
-# Determine if inputs are sufficient to enable the button
 can_process = False
 if selected_operation == "Property Mapping" and uploaded_file is not None:
     can_process = True
@@ -632,15 +653,15 @@ elif selected_operation == "DMG Data Cleanup" and dmg_client_db and dmg_start_pe
      can_process = True
 elif selected_operation == "AIM Data Cleanup" and aim_db_name and aim_period:
      can_process = True
-# Add elif for future operations
 
 process_button = st.button("⚙️ Generate Script", disabled=not can_process, help="Provide all required inputs first.")
 
 if process_button and can_process:
-    # Set the current operation being processed *before* calling the function
     st.session_state.current_operation = selected_operation
+    # Clear previous filename input when generating new script for Prop Mapping
+    if selected_operation == "Property Mapping":
+        st.session_state.sql_file_name_input = ""
 
-    # Show spinner while processing
     with st.spinner(f"Processing '{selected_operation}'... Please wait."):
         if selected_operation == "Property Mapping":
             process_property_mapping(uploaded_file)
@@ -648,7 +669,6 @@ if process_button and can_process:
              process_dmg_cleanup(dmg_client_db, dmg_start_period, dmg_end_period)
         elif selected_operation == "AIM Data Cleanup":
              process_aim_cleanup(aim_db_name, aim_period)
-        # Add elif for other operations
         else:
             st.warning(f"Processing logic for '{selected_operation}' is not implemented yet.")
             st.session_state.error_message = "Not implemented"
@@ -660,81 +680,92 @@ if process_button and can_process:
 st.divider()
 st.subheader("📊 Results")
 
-# Display results based on session state *and* if they belong to the currently selected operation
-# Check if there *is* a current_operation set (meaning Generate was clicked)
 results_ready = st.session_state.get('current_operation') is not None
-# Check if the results shown match the *currently selected* operation in the dropdown
 operation_results_match = st.session_state.get('current_operation') == selected_operation
 
 if results_ready and operation_results_match:
-    processed_identifier = st.session_state.get('file_name_processed', 'Input Parameters') # Use filename or generic text
+    processed_identifier = st.session_state.get('file_name_processed', 'Input Parameters')
 
     if st.session_state.get('processed_data'):
         st.success(f"✅ Script generation complete for **{selected_operation}** using **{processed_identifier}**!")
 
-        # Display Metrics - Adapt based on operation type
         if selected_operation == "Property Mapping":
             col1, col2, col3 = st.columns(3)
             col1.metric("Rows Read", st.session_state.get('rows_read', 0))
             col2.metric("Rows Matching Filter", st.session_state.get('rows_filtered', 0))
-            col3.metric("SQL Blocks Generated", st.session_state.get('queries_generated', 0))
+            # "Queries Generated" for Prop Mapping now means rows processed for mapping
+            col3.metric("Mappings Processed", st.session_state.get('queries_generated', 0))
         elif selected_operation in ["DMG Data Cleanup", "AIM Data Cleanup"]:
-             # Only show generated count for cleanup tasks
-             st.metric("SQL Script Generated", "1" if st.session_state.get('queries_generated', 0) > 0 else "0") # Should be 1 if successful
-        # Add elif for other operations if needed
+             st.metric("SQL Script Generated", "1" if st.session_state.get('queries_generated', 0) > 0 else "0")
 
         st.subheader("Generated SQL Preview (First 1000 chars)")
         preview_text = st.session_state.processed_data[:1000] + ("..." if len(st.session_state.processed_data) > 1000 else "")
         st.code(preview_text, language="sql")
 
-        # --- Download Button ---
-        file_name = f"{selected_operation.replace(' ', '')}_Script_{datetime.now().strftime('%Y%m%d_%H%M%S')}.sql"
+        # --- Download Section ---
+        st.subheader("Download Script")
+
+        # Default filename generation
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        default_filename = f"{selected_operation.replace(' ', '_')}_Script_{timestamp}.sql"
+
+        # Specific default and input for Property Mapping
+        if selected_operation == "Property Mapping":
+            default_prop_map_filename = f"Integrations_DF_ARES_Additional_Property_Mapping_PME-XXXXXX_{datetime.now().strftime('%Y%m%d')}.sql"
+            # Use session state value if it exists (user typed something), else use default
+            current_filename_value = st.session_state.get('sql_file_name_input') or default_prop_map_filename
+
+            # Display the input field for Property Mapping filename
+            user_filename = st.text_input(
+                "Enter desired SQL file name:",
+                value=current_filename_value,
+                key="sql_file_name_input", # Link to session state
+                help="Suggested format: Integrations_DF_ARES_Additional_Property_Mapping_PME-XXXXXX_YYYYMMDD.sql. Replace XXXXXX as needed."
+            )
+            # Use the user's input (or the default if unchanged) for the download button
+            download_filename = user_filename if user_filename else default_prop_map_filename # Fallback just in case
+
+        else:
+            # For other operations, use the standard default filename
+            download_filename = default_filename
+            # Display the filename that will be used (read-only)
+            st.info(f"Download filename: `{download_filename}`")
+
+
         st.download_button(
             label=f"📥 Download Full SQL Script",
             data=st.session_state.processed_data,
-            file_name=file_name,
+            file_name=download_filename, # Use the determined filename
             mime="text/plain",
             help="Download the generated SQL script as a .sql file."
         )
 
     elif st.session_state.get('error_message'):
         error_msg = st.session_state.error_message
-        # Specific warning for "No matching rows" (only relevant for Property Mapping now)
         if selected_operation == "Property Mapping" and "No matching rows" in error_msg:
             st.warning(f"⚠️ No data rows matched the filter criteria for '{selected_operation}' in file **{processed_identifier}**. No SQL script was generated.")
-            # Display metrics even if no rows matched
             col1, col2, col3 = st.columns(3)
             col1.metric("Rows Read", st.session_state.get('rows_read', 0))
             col2.metric("Rows Matching Filter", 0)
-            col3.metric("SQL Blocks Generated", 0)
+            col3.metric("Mappings Processed", 0)
         elif error_msg != "Not implemented":
              st.error(f"❌ Processing failed for **{selected_operation}** using **{processed_identifier}**. Error: {error_msg}")
-             # Optionally show metrics like Rows Read if they were populated before the error
              if selected_operation == "Property Mapping" and st.session_state.get('rows_read', 0) > 0:
                  col1, col2, col3 = st.columns(3)
                  col1.metric("Rows Read", st.session_state.get('rows_read', 0))
                  col2.metric("Rows Matching Filter", "N/A")
-                 col3.metric("SQL Blocks Generated", "N/A")
-
-        # Don't show anything specific for "Not implemented" here, as it's handled elsewhere or implied
-
-    # elif process_button: # Redundant check if spinner works correctly
-    #     st.info("Processing...")
+                 col3.metric("Mappings Processed", "N/A")
 
     else:
-        # This case might happen if processing finishes but sets neither data nor error (unlikely)
        st.info("Provide inputs and click 'Generate Script' to see results.")
 
 elif not results_ready:
-    # No button press yet in this session
     st.info("Provide inputs and click 'Generate Script' to see results.")
 
 elif not operation_results_match:
-    # Results are available, but for a *different* operation than currently selected
     st.info(f"Results shown below are for a previous run of '{st.session_state.current_operation}'. Select '{st.session_state.current_operation}' or process new inputs for '{selected_operation}' to see updated results.")
-    # Optionally, still show the old results here if desired, clearly marked.
 
 
 # --- Footer ---
 st.divider()
-st.caption(f"SQL Generator Tool | Current Operation: {selected_operation} | Version 1.3")
+st.caption(f"SQL Generator Tool | Current Operation: {selected_operation} | Version 1.4")
