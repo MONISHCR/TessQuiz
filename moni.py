@@ -42,28 +42,28 @@ def get_template_excel():
 
 # --- Property Mapping Specific SQL Generation Functions ---
 
+# MODIFIED: Comment out the generated SQL and remove GO
 def generate_sql_property_name_check(property_names):
     """
-    Generates the 'SELECT * FROM Property' block based on property names.
+    Generates the '--SELECT * FROM Property' block based on property names.
     This uses the names extracted from the 'AIM Property Name' column.
+    Output is commented out per requirement.
     """
     if not property_names:
         return "-- No valid property names found in the filtered data to generate Property check."
 
     # Escape each name and format for the IN clause
     escaped_names = [f"'{escape_sql_string(name)}'" for name in property_names]
-    in_clause = ",\n".join(escaped_names)
+    # Add indentation for readability within the comment
+    in_clause = ",\n--".join(escaped_names) # Add comment marker for each line
 
-    # Construct the SQL query
-    return f"""
--- Check if Target Properties exist by Name (from 'AIM Property Name' column)
-SELECT * FROM Property
-WHERE name_txt IN (
-{in_clause}
-);
-GO
-"""
+    # Construct the SQL query, commenting out each line
+    return f"""--SELECT * FROM Property
+--WHERE name_txt IN ({in_clause}
+--);
+""" # Removed GO
 
+# MODIFIED: Remove the trailing GO
 def generate_sql_mapping_checks(filtered_df, source_col, target_col):
     """Generates the block of SELECT statements to check existing mappings."""
     if filtered_df.empty:
@@ -74,12 +74,15 @@ def generate_sql_mapping_checks(filtered_df, source_col, target_col):
         safe_source_id = escape_sql_string(str(row[source_col]).strip())
         # Target ID should already be validated as numeric and converted to int
         target_id = int(row[target_col])
-        select_statements.append(f"SELECT * FROM admin.PropertyMapping WHERE Source_Pty_Id = '{safe_source_id}' AND Target_Pty_Id = {target_id};")
+        # Use exactly the requested format
+        select_statements.append(f"SELECT * FROM admin.PropertyMapping WHERE Source_Pty_Id = '{safe_source_id}' AND Target_Pty_Id = {target_id}")
 
-    return "\n".join(select_statements) + "\nGO\n"
+    return "\n".join(select_statements) # Removed "\nGO\n"
 
+
+# MODIFIED: Changed structure, removed comments, PRINTs, and GO
 def generate_sql_mapping_inserts(filtered_df, source_col, target_col, name_col):
-    """Generates the block of IF NOT EXISTS...INSERT statements."""
+    """Generates the block of IF NOT EXISTS...INSERT statements in the specific required format."""
     if filtered_df.empty:
         return "-- No rows to generate mapping inserts."
 
@@ -87,26 +90,22 @@ def generate_sql_mapping_inserts(filtered_df, source_col, target_col, name_col):
     for index, row in filtered_df.iterrows():
         safe_source_id = escape_sql_string(str(row[source_col]).strip())
         target_id = int(row[target_col]) # Assumes already validated int
-        safe_name = escape_sql_string(str(row[name_col]).strip()) # For comment
+        # safe_name = escape_sql_string(str(row[name_col]).strip()) # Name no longer needed for comment
 
-        insert_blocks.append(f"""
--- Map: {safe_name} (Source: {safe_source_id} -> Target: {target_id})
-IF NOT EXISTS (SELECT * FROM admin.PropertyMapping WHERE Source_Pty_Id = '{safe_source_id}' AND Target_Pty_Id = {target_id})
-BEGIN
-    INSERT INTO admin.PropertyMapping (Source_Pty_Id, Target_Pty_Id, Active, Created)
-    VALUES ('{safe_source_id}', {target_id}, 1, GETDATE());
-    PRINT 'Mapping inserted for Source_Pty_Id = ''{safe_source_id}'' AND Target_Pty_Id = {target_id}';
-END
-ELSE
-BEGIN
-    PRINT 'Mapping already exists for Source_Pty_Id = ''{safe_source_id}'' AND Target_Pty_Id = {target_id}';
-END
-""")
-        # Adding GO after the entire block.
+        # Use exactly the requested format
+        insert_blocks.append(f"""IF NOT EXISTS (SELECT * FROM admin.PropertyMapping WHERE Source_Pty_Id = '{safe_source_id}' AND Target_Pty_Id = {target_id})
+    BEGIN
+        INSERT INTO admin.PropertyMapping (Source_Pty_Id, Target_Pty_Id, Active, Created)
+        VALUES ('{safe_source_id}', {target_id}, 1, GETDATE());
+    END""")
+        # No GO needed between blocks per requirement
 
-    return "\n".join(insert_blocks) + "\nGO\n"
+    # Join with two newlines for spacing between IF blocks
+    return "\n\n".join(insert_blocks) # Removed "\nGO\n", added double newline for spacing
+
 
 # --- Property Mapping Processing Function ---
+# MODIFIED: Changed how SQL blocks are assembled in Stage 5
 def process_property_mapping(uploaded_file):
     """Handles the entire process for the Property Mapping option."""
     # Reset state variables for this run
@@ -237,39 +236,30 @@ def process_property_mapping(uploaded_file):
         st.session_state.rows_filtered = len(filtered_df)
         status_placeholder.info(f"Found {st.session_state.rows_filtered} rows matching filter criteria. Generating SQL...")
 
-        # --- Stage 5: Generate SQL Script (New Structure) ---
+        # --- Stage 5: Generate SQL Script (MODIFIED STRUCTURE) ---
         if not filtered_df.empty:
-            sql_blocks = []
+            sql_blocks = [] # Changed from dictionary to list
 
-            # Add header block to SQL script
-            sql_blocks.append(f"-- SQL Script Generated by Streamlit Tool on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-            sql_blocks.append(f"-- Operation Type: Property Mapping")
-            sql_blocks.append(f"-- Target Tables: Property, admin.PropertyMapping")
-            sql_blocks.append(f"-- Generated from file: {uploaded_file.name}")
-            sql_blocks.append(f"-- Filter Condition: {COL_SOURCE_ID_HDR} == {COL_AIM_CODE_HDR} == {COL_EXT_ID_HDR} (non-blank) AND {COL_TARGET_ID_HDR} is numeric")
-            sql_blocks.append(f"-- Rows Read: {st.session_state.rows_read}, Rows Filtered: {st.session_state.rows_filtered}")
-            sql_blocks.append("-- ======================================================================")
-            sql_blocks.append("")
-
-            # Block 1: Check Property Names (Uses 'AIM Property Name' column)
-            # Extract unique, non-empty, string property names from the filtered data
+            # Block 1: Commented-out Check Property Names (Uses 'AIM Property Name' column)
             unique_property_names = filtered_df[COL_AIM_NAME_HDR].dropna().unique().tolist()
             valid_property_names = [name for name in unique_property_names if isinstance(name, str) and name.strip()]
-            sql_blocks.append(generate_sql_property_name_check(valid_property_names)) # <--- Generates the SELECT * FROM Property...
+            sql_blocks.append(generate_sql_property_name_check(valid_property_names))
 
-            # Block 2: Initial Check Mappings
-            sql_blocks.append("-- Initial check for existing mappings (Source -> Target)")
+            # Block 2: Initial Check Mappings (SELECT * FROM admin.PropertyMapping...)
             sql_blocks.append(generate_sql_mapping_checks(filtered_df, COL_SOURCE_ID_HDR, COL_TARGET_ID_HDR))
 
-            # Block 3: Insert Mappings if they don't exist
-            sql_blocks.append("-- Insert mappings if they do not exist")
+            # Block 3: Insert Mappings (IF NOT EXISTS...)
             sql_blocks.append(generate_sql_mapping_inserts(filtered_df, COL_SOURCE_ID_HDR, COL_TARGET_ID_HDR, COL_AIM_NAME_HDR))
 
-            # Block 4: Final Check Mappings (Post-Insert Verification)
-            sql_blocks.append("-- Final check for mappings (verify inserts)")
+            # Block 4: Final Check Mappings (SELECT * FROM admin.PropertyMapping...) - Same as Block 2
             sql_blocks.append(generate_sql_mapping_checks(filtered_df, COL_SOURCE_ID_HDR, COL_TARGET_ID_HDR))
 
-            final_sql_script = "\n".join(sql_blocks)
+            # Join the blocks with appropriate newlines.
+            # Blocks 1 & 2 need double newline separation.
+            # Blocks 2 & 3 need double newline separation.
+            # Blocks 3 & 4 need double newline separation.
+            final_sql_script = "\n\n".join(sql_blocks) # Join with double newline
+
             st.session_state.processed_data = final_sql_script
             # Count represents the number of mappings attempted (rows in filtered_df)
             st.session_state.queries_generated = len(filtered_df)
@@ -292,7 +282,8 @@ def process_property_mapping(uploaded_file):
         if 'status_placeholder' in locals() and status_placeholder:
              status_placeholder.error("Processing failed.")
 
-# --- DMG Data Cleanup Specific Functions ---
+
+# --- DMG Data Cleanup Specific Functions --- (Keep as is)
 def generate_dmg_cleanup_sql(client_db, start_period, end_period):
     """Generates the SQL script for DMG Data Cleanup."""
     # Input validation
@@ -397,7 +388,8 @@ def process_dmg_cleanup(client_db, start_period, end_period):
         st.session_state.error_message = f"An unexpected error occurred: {str(e)}"
         if status_placeholder: status_placeholder.error("Processing failed.")
 
-# --- AIM Data Cleanup Specific Functions ---
+
+# --- AIM Data Cleanup Specific Functions --- (Keep as is)
 def generate_aim_cleanup_sql(aim_db, period):
     """Generates the SQL script for AIM Data Cleanup."""
     if not aim_db or not period:
@@ -499,7 +491,7 @@ def process_aim_cleanup(aim_db, period):
         if status_placeholder: status_placeholder.error("Processing failed.")
 
 
-# --- Streamlit App UI ---
+# --- Streamlit App UI --- (Keep as is)
 st.set_page_config(page_title="SQL Generator Tool", layout="wide")
 
 # Initialize session state variables if they don't exist
@@ -588,7 +580,7 @@ with st.expander("ℹ Instructions and Inputs", expanded=True):
                 *   `Source_Pty_Id` value is **not blank**.
                 *   `Pty_iTarget_Pty_Idd` value is a **valid number** (integer or decimal).
             7.  **Generate:** Click the 'Generate Script' button in Step 3.
-            8.  **Download:** If successful, a `.sql` script targeting `Property` (for checking names) and `admin.PropertyMapping` (for checking/inserting mappings) will be available for download. You can customize the filename before downloading in the Results section.
+            8.  **Download:** If successful, a `.sql` script targeting `Property` (for checking names - commented out) and `admin.PropertyMapping` (for checking/inserting mappings) will be available following the specific structure shown in the preview. You can customize the filename before downloading in the Results section.
         """)
         st.markdown("**Download Template:**")
         template_excel_bytes = get_template_excel()
@@ -625,8 +617,8 @@ with st.expander("ℹ Instructions and Inputs", expanded=True):
     st.markdown("""
         **General Support:**
         *   *Developed by:* Monish & Sanju
-        *   *Version:* 1.5 (Added Cleanup Ops, Refined PropMap, Filename Input)
-    """)
+        *   *Version:* 1.6 (Specific PropMap SQL Format)
+    """) # Updated version number
 
 st.divider()
 
@@ -741,7 +733,7 @@ if process_button and can_process:
 
     with st.spinner(f"Processing '{selected_operation}'... Please wait."):
         if selected_operation == "Property Mapping":
-            process_property_mapping(uploaded_file)
+            process_property_mapping(uploaded_file) # Uses the modified functions
         elif selected_operation == "DMG Data Cleanup":
              process_dmg_cleanup(dmg_client_db, dmg_start_period, dmg_end_period)
         elif selected_operation == "AIM Data Cleanup":
@@ -875,4 +867,4 @@ elif not results_available_for_current_op:
 
 # --- Footer ---
 st.divider()
-st.caption(f"SQL Generator Tool | Current Operation: {selected_operation} | Version 1.5")
+st.caption(f"SQL Generator Tool | Current Operation: {selected_operation} | Version 1.6") # Updated version number
