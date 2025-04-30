@@ -261,20 +261,13 @@ def generate_dmg_cleanup_sql(client_db, start_period, end_period, cleanup_scope)
 USE {safe_client_db};
 GO
 
-PRINT '--- Selecting Actuals before deletion ---';
--- Check actuals count/data before deleting
+
 select c.*
 from CashFlow C
 inner join Entity E ON C.EntityKey = E.EntityKey
-INNER JOIN Lookup.Value AS BT ON C.BookTypeKey=BT.ValueKey AND BT.ValueID='Actual' -- Corrected C.BookTypeKey
+INNER JOIN Lookup.Value AS BT ON C.BookTypeKey=BT.ValueKey AND BT.ValueID='Actual'
 WHERE  E.EntityType = 'Asset' and C.Period between {start_period} and {end_period};
 GO
-
-PRINT '--- Performing Deletion (Actuals Only) ---';
-BEGIN TRAN T1_DMG_Cleanup_Actuals;
-
--- Consider adding a delay if this might run on a busy production server
--- WAITFOR DELAY '00:00:02'; -- Example: wait 2 seconds
 
 delete C
 from CashFlow C
@@ -282,30 +275,12 @@ inner join Entity E ON C.EntityKey = E.EntityKey
 INNER JOIN Lookup.Value AS BT ON C.BookTypeKey=BT.ValueKey AND BT.ValueID='Actual' -- Corrected C.BookTypeKey
 WHERE  E.EntityType = 'Asset' and C.Period between {start_period} and {end_period};
 
-DECLARE @RowsDeleted_Actuals INT = @@ROWCOUNT;
-PRINT 'Attempted to delete Actuals records. Rows affected: ' + CAST(@RowsDeleted_Actuals AS VARCHAR);
-
--- !! IMPORTANT !! Review the count and affected rows before committing.
--- Uncomment the ROLLBACK and comment the COMMIT to test without making changes.
--- ROLLBACK TRAN T1_DMG_Cleanup_Actuals;
--- PRINT 'Transaction Rolled Back (Actuals Only). No changes were made.';
-
-COMMIT TRAN T1_DMG_Cleanup_Actuals;
-PRINT 'Transaction Committed (Actuals Only).';
-
-GO
-
-PRINT '--- Selecting Actuals after deletion ---';
--- Verify actuals count/data after deleting
 select c.*
 from CashFlow C
 inner join Entity E ON C.EntityKey = E.EntityKey
 INNER JOIN Lookup.Value AS BT ON C.BookTypeKey=BT.ValueKey AND BT.ValueID='Actual' -- Corrected C.BookTypeKey
 WHERE  E.EntityType = 'Asset' and C.Period between {start_period} and {end_period};
-GO
 
-PRINT '--- DMG Cleanup Script Complete (Actuals Only) ---';
-GO
 """
     elif cleanup_scope == "All Book Types":
         # Template 2: All Book Types Cleanup (Uses *, no Lookup.Value JOIN)
@@ -321,48 +296,24 @@ GO
 USE {safe_client_db};
 GO
 
-PRINT '--- Selecting records before deletion (All Book Types) ---';
--- Check count/data before deleting
+
 select *
-from CashFlow C WITH (NOLOCK)
-inner join Entity E WITH (NOLOCK) ON C.EntityKey = E.EntityKey
-WHERE E.EntityType = 'Asset' and C.Period between {start_period} and {end_period};
+from CashFlow C 
+inner join Entity E ON C.EntityKey = E.EntityKey
+WHERE E.EntityType = 'Asset' and Period between {start_period} and {end_period};
 GO
 
-PRINT '--- Performing Deletion (All Book Types) ---';
-BEGIN TRAN T1_DMG_Cleanup_All;
-
--- Consider adding a delay if this might run on a busy production server
--- WAITFOR DELAY '00:00:02'; -- Example: wait 2 seconds
 
 delete C
 from CashFlow C
 inner join Entity E ON C.EntityKey = E.EntityKey
 WHERE E.EntityType = 'Asset' and C.Period between {start_period} and {end_period};
 
-DECLARE @RowsDeleted_All INT = @@ROWCOUNT;
-PRINT 'Attempted to delete records (All Book Types). Rows affected: ' + CAST(@RowsDeleted_All AS VARCHAR);
-
--- !! IMPORTANT !! Review the count and affected rows before committing.
--- Uncomment the ROLLBACK and comment the COMMIT to test without making changes.
--- ROLLBACK TRAN T1_DMG_Cleanup_All;
--- PRINT 'Transaction Rolled Back (All Book Types). No changes were made.';
-
-COMMIT TRAN T1_DMG_Cleanup_All;
-PRINT 'Transaction Committed (All Book Types).';
-
-GO
-
-PRINT '--- Selecting records after deletion (All Book Types) ---';
--- Verify count/data after deleting
 select *
-from CashFlow C WITH (NOLOCK)
-inner join Entity E WITH (NOLOCK) ON C.EntityKey = E.EntityKey
-WHERE E.EntityType = 'Asset' and C.Period between {start_period} and {end_period};
-GO
+from CashFlow C WITH
+inner join Entity E ON C.EntityKey = E.EntityKey
+WHERE E.EntityType = 'Asset' and Period between {start_period} and {end_period};
 
-PRINT '--- DMG Cleanup Script Complete (All Book Types) ---';
-GO
 """
     else:
         # This case should not be reached due to prior validation, but included for safety
