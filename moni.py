@@ -40,9 +40,8 @@ def get_template_excel():
     output.seek(0)
     return output
 
-# --- Property Mapping Specific SQL Generation Functions ---
+# --- Property Mapping Specific SQL Generation Functions (Unchanged from previous version) ---
 
-# MODIFIED: Comment out the generated SQL and remove GO
 def generate_sql_property_name_check(property_names):
     """
     Generates the '--SELECT * FROM Property' block based on property names.
@@ -63,7 +62,6 @@ def generate_sql_property_name_check(property_names):
 --);
 """ # Removed GO
 
-# MODIFIED: Remove the trailing GO
 def generate_sql_mapping_checks(filtered_df, source_col, target_col):
     """Generates the block of SELECT statements to check existing mappings."""
     if filtered_df.empty:
@@ -80,7 +78,6 @@ def generate_sql_mapping_checks(filtered_df, source_col, target_col):
     return "\n".join(select_statements) # Removed "\nGO\n"
 
 
-# MODIFIED: Changed structure, removed comments, PRINTs, and GO
 def generate_sql_mapping_inserts(filtered_df, source_col, target_col, name_col):
     """Generates the block of IF NOT EXISTS...INSERT statements in the specific required format."""
     if filtered_df.empty:
@@ -104,8 +101,7 @@ def generate_sql_mapping_inserts(filtered_df, source_col, target_col, name_col):
     return "\n\n".join(insert_blocks) # Removed "\nGO\n", added double newline for spacing
 
 
-# --- Property Mapping Processing Function ---
-# MODIFIED: Changed how SQL blocks are assembled in Stage 5
+# --- Property Mapping Processing Function (Unchanged from previous version) ---
 def process_property_mapping(uploaded_file):
     """Handles the entire process for the Property Mapping option."""
     # Reset state variables for this run
@@ -236,7 +232,7 @@ def process_property_mapping(uploaded_file):
         st.session_state.rows_filtered = len(filtered_df)
         status_placeholder.info(f"Found {st.session_state.rows_filtered} rows matching filter criteria. Generating SQL...")
 
-        # --- Stage 5: Generate SQL Script (MODIFIED STRUCTURE) ---
+        # --- Stage 5: Generate SQL Script (Specific Property Mapping Structure) ---
         if not filtered_df.empty:
             sql_blocks = [] # Changed from dictionary to list
 
@@ -255,9 +251,6 @@ def process_property_mapping(uploaded_file):
             sql_blocks.append(generate_sql_mapping_checks(filtered_df, COL_SOURCE_ID_HDR, COL_TARGET_ID_HDR))
 
             # Join the blocks with appropriate newlines.
-            # Blocks 1 & 2 need double newline separation.
-            # Blocks 2 & 3 need double newline separation.
-            # Blocks 3 & 4 need double newline separation.
             final_sql_script = "\n\n".join(sql_blocks) # Join with double newline
 
             st.session_state.processed_data = final_sql_script
@@ -283,29 +276,43 @@ def process_property_mapping(uploaded_file):
              status_placeholder.error("Processing failed.")
 
 
-# --- DMG Data Cleanup Specific Functions --- (Keep as is)
-def generate_dmg_cleanup_sql(client_db, start_period, end_period):
-    """Generates the SQL script for DMG Data Cleanup."""
+# --- DMG Data Cleanup Specific Functions --- (MODIFIED) ---
+def generate_dmg_cleanup_sql(client_db, start_period, end_period, cleanup_scope):
+    """Generates the SQL script for DMG Data Cleanup, allowing scope selection."""
     # Input validation
-    if not client_db or not start_period or not end_period:
-        raise ValueError("Client DB Name, Start Period, and End Period cannot be empty.")
+    if not client_db or not start_period or not end_period or not cleanup_scope:
+        raise ValueError("Client DB Name, Start Period, End Period, and Cleanup Scope cannot be empty.")
     if not (re.fullmatch(r"^\d{8}$", start_period) and re.fullmatch(r"^\d{8}$", end_period)):
          raise ValueError("Periods must be numeric and in YYYYMMDD format (e.g., 20241201).")
     try:
         if int(start_period) > int(end_period):
             raise ValueError("Start Period cannot be later than End Period.")
-    except ValueError: # Catch if conversion to int fails (shouldn't with regex, but good practice)
+    except ValueError: # Catch if conversion to int fails
          raise ValueError("Periods must be valid numeric dates in YYYYMMDD format.")
+    if cleanup_scope not in ["Actuals Only", "All Book Types"]:
+        raise ValueError("Invalid Cleanup Scope selected.")
 
-    # Safely quote database name (handle potential ']' characters)
+    # Safely quote database name
     safe_client_db = f"[{client_db.replace(']', ']]')}]"
 
+    # --- Define SQL Clauses based on Scope ---
+    join_clause = ""
+    where_clause_extension = ""
+    filter_description = f"EntityType = 'Asset' AND Period BETWEEN {start_period} AND {end_period}"
+
+    if cleanup_scope == "Actuals Only":
+        join_clause = "INNER JOIN Lookup.Value AS BT WITH (NOLOCK) ON C.BookTypeKey = BT.ValueKey"
+        where_clause_extension = "AND BT.ValueID = 'Actual'"
+        filter_description += " AND BookType = 'Actual'"
+    # No changes needed for "All Book Types" as it uses the base filter
+
+    # --- Construct the SQL Script ---
     return f"""
 -- SQL Script Generated by Streamlit Tool on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
--- Operation Type: DMG Data Cleanup
+-- Operation Type: DMG Data Cleanup ({cleanup_scope})
 -- Target Database: {safe_client_db}
 -- Target Table: CashFlow (via Entity join)
--- Filter: EntityType = 'Asset' AND Period BETWEEN {start_period} AND {end_period}
+-- Filter: {filter_description}
 -- ======================================================================
 
 USE {safe_client_db};
@@ -313,11 +320,19 @@ GO
 
 PRINT '--- Before Deletion ---';
 SELECT COUNT(*) AS RecordCount_BeforeDelete
-FROM CashFlow C WITH (NOLOCK) -- Use NOLOCK for count if acceptable for your environment
+FROM CashFlow C WITH (NOLOCK)
 INNER JOIN Entity E WITH (NOLOCK) ON C.EntityKey = E.EntityKey
-WHERE E.EntityType = 'Asset' AND C.Period BETWEEN {start_period} AND {end_period};
+{join_clause} -- Add BookType join only if needed
+WHERE E.EntityType = 'Asset' AND C.Period BETWEEN {start_period} AND {end_period}
+{where_clause_extension}; -- Add BookType filter only if needed
+
 -- Optional: Select top N records before delete for inspection
--- SELECT TOP 10 C.* FROM CashFlow C INNER JOIN Entity E ON C.EntityKey = E.EntityKey WHERE E.EntityType = 'Asset' AND C.Period BETWEEN {start_period} AND {end_period};
+-- SELECT TOP 10 C.*
+-- FROM CashFlow C WITH (NOLOCK)
+-- INNER JOIN Entity E WITH (NOLOCK) ON C.EntityKey = E.EntityKey
+-- {join_clause}
+-- WHERE E.EntityType = 'Asset' AND C.Period BETWEEN {start_period} AND {end_period}
+-- {where_clause_extension};
 GO
 
 PRINT '--- Performing Deletion ---';
@@ -329,7 +344,9 @@ BEGIN TRAN T1_DMG_Cleanup;
 DELETE C
 FROM CashFlow C
 INNER JOIN Entity E ON C.EntityKey = E.EntityKey
-WHERE E.EntityType = 'Asset' AND C.Period BETWEEN {start_period} AND {end_period};
+{join_clause} -- Add BookType join only if needed
+WHERE E.EntityType = 'Asset' AND C.Period BETWEEN {start_period} AND {end_period}
+{where_clause_extension}; -- Add BookType filter only if needed
 
 DECLARE @RowsDeleted INT = @@ROWCOUNT;
 PRINT 'Attempted to delete records. Rows affected: ' + CAST(@RowsDeleted AS VARCHAR);
@@ -346,18 +363,27 @@ GO
 
 PRINT '--- After Deletion ---';
 SELECT COUNT(*) AS RecordCount_AfterDelete
-FROM CashFlow C WITH (NOLOCK) -- Use NOLOCK for count if acceptable
+FROM CashFlow C WITH (NOLOCK)
 INNER JOIN Entity E WITH (NOLOCK) ON C.EntityKey = E.EntityKey
-WHERE E.EntityType = 'Asset' AND C.Period BETWEEN {start_period} AND {end_period};
+{join_clause} -- Add BookType join only if needed
+WHERE E.EntityType = 'Asset' AND C.Period BETWEEN {start_period} AND {end_period}
+{where_clause_extension}; -- Add BookType filter only if needed
+
 -- Optional: Select top N records after delete to verify
--- SELECT TOP 10 C.* FROM CashFlow C INNER JOIN Entity E ON C.EntityKey = E.EntityKey WHERE E.EntityType = 'Asset' AND C.Period BETWEEN {start_period} AND {end_period};
+-- SELECT TOP 10 C.*
+-- FROM CashFlow C WITH (NOLOCK)
+-- INNER JOIN Entity E WITH (NOLOCK) ON C.EntityKey = E.EntityKey
+-- {join_clause}
+-- WHERE E.EntityType = 'Asset' AND C.Period BETWEEN {start_period} AND {end_period}
+-- {where_clause_extension};
 GO
 
-PRINT '--- DMG Cleanup Script Complete ---';
+PRINT '--- DMG Cleanup Script Complete ({cleanup_scope}) ---';
 GO
 """
 
-def process_dmg_cleanup(client_db, start_period, end_period):
+# MODIFIED: Added cleanup_scope parameter
+def process_dmg_cleanup(client_db, start_period, end_period, cleanup_scope):
     """Handles the process for DMG Data Cleanup."""
     # Reset relevant session state variables
     st.session_state.processed_data = None
@@ -369,9 +395,9 @@ def process_dmg_cleanup(client_db, start_period, end_period):
 
     status_placeholder = st.empty()
     try:
-        status_placeholder.info(f"Validating inputs for DMG Cleanup: DB='{client_db}', Period='{start_period}-{end_period}'")
+        status_placeholder.info(f"Validating inputs for DMG Cleanup: DB='{client_db}', Period='{start_period}-{end_period}', Scope='{cleanup_scope}'")
         # generate_dmg_cleanup_sql now includes validation and raises ValueError on failure
-        final_sql_script = generate_dmg_cleanup_sql(client_db, start_period, end_period)
+        final_sql_script = generate_dmg_cleanup_sql(client_db, start_period, end_period, cleanup_scope)
         st.session_state.processed_data = final_sql_script
         st.session_state.queries_generated = 1 # Represents one script block generated
         status_placeholder.success("DMG Cleanup SQL script generated successfully!")
@@ -388,8 +414,7 @@ def process_dmg_cleanup(client_db, start_period, end_period):
         st.session_state.error_message = f"An unexpected error occurred: {str(e)}"
         if status_placeholder: status_placeholder.error("Processing failed.")
 
-
-# --- AIM Data Cleanup Specific Functions --- (Keep as is)
+# --- AIM Data Cleanup Specific Functions --- (Unchanged)
 def generate_aim_cleanup_sql(aim_db, period):
     """Generates the SQL script for AIM Data Cleanup."""
     if not aim_db or not period:
@@ -491,11 +516,11 @@ def process_aim_cleanup(aim_db, period):
         if status_placeholder: status_placeholder.error("Processing failed.")
 
 
-# --- Streamlit App UI --- (Keep as is)
+# --- Streamlit App UI ---
 st.set_page_config(page_title="SQL Generator Tool", layout="wide")
 
 # Initialize session state variables if they don't exist
-# (Ensures robustness if the script reruns unexpectedly)
+# MODIFIED: Added dmg_cleanup_scope to defaults
 defaults = {
     'processed_data': None,
     'error_message': None,
@@ -503,10 +528,11 @@ defaults = {
     'rows_read': 0,
     'rows_filtered': 0,
     'file_name_processed': None,
-    'current_operation': None,
+    'current_operation': "Property Mapping", # Default to Prop Mapping
     'dmg_client_db': "",
     'dmg_start_period': "",
     'dmg_end_period': "",
+    'dmg_cleanup_scope': "All Book Types", # Default scope
     'aim_db_name': "",
     'aim_period': "",
     'uploaded_file_key': 0,
@@ -533,36 +559,38 @@ operation_options = [
 
 # Define a callback function to reset states when operation changes
 def reset_state_on_operation_change():
-    # Reset all general state variables
+    # Reset all general state variables TO DEFAULTS
     for key in defaults:
-         st.session_state[key] = defaults[key] # Reset to initial defaults
+        st.session_state[key] = defaults[key] # Reset to initial defaults
     # Increment file uploader key to force widget reset if it exists
     st.session_state.uploaded_file_key += 1
-    # Clear any displayed status message from previous runs
-    # Find a way to clear status_placeholder if it exists - difficult across reruns
     pass # Placeholder for potential future status clearing logic
 
 # Get the currently selected operation (before potential change)
 previous_operation = st.session_state.current_operation
 
+# Use stored operation if valid, otherwise default to the first option
+default_index = 0
+if st.session_state.current_operation in operation_options:
+    default_index = operation_options.index(st.session_state.current_operation)
+
 selected_operation = st.selectbox(
     "Select the task you want to perform:",
     options=operation_options,
-    index=operation_options.index(st.session_state.current_operation) if st.session_state.current_operation in operation_options else 0,
+    index=default_index,
     key="operation_selector",
     on_change=reset_state_on_operation_change # Callback resets state
 )
 
-# Store the newly selected operation if it changed
-if selected_operation != previous_operation:
-    st.session_state.current_operation = selected_operation
-    # No need to reset here, on_change handles it.
+# Store the newly selected operation *after* the selectbox is potentially changed
+st.session_state.current_operation = selected_operation
 
 # --- Instructions & Template/Inputs ---
 with st.expander("ℹ Instructions and Inputs", expanded=True):
     st.markdown(f"**Selected Operation: {selected_operation}**")
     st.markdown("---")
 
+    # --- Property Mapping Instructions (Unchanged) ---
     if selected_operation == "Property Mapping":
         pm_headers = [ "Provider", "Source_Pty_Id", "AIM Code", "AIM Property Name", "Pty_iTarget_Pty_Idd", "Ext_Id"]
         st.markdown(f"""
@@ -590,6 +618,7 @@ with st.expander("ℹ Instructions and Inputs", expanded=True):
             file_name="PropertyMapping_Template.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
+    # --- DMG Cleanup Instructions (MODIFIED) ---
     elif selected_operation == "DMG Data Cleanup":
         st.markdown("""
             **Instructions for DMG Data Cleanup:**
@@ -597,9 +626,13 @@ with st.expander("ℹ Instructions and Inputs", expanded=True):
             1.  **Inputs:** Provide the required information in the fields below in "Step 2".
             2.  **Client Database Name:** Enter the exact name of the target database (e.g., `AegonDQSI`). Square brackets `[]` are handled automatically if needed.
             3.  **Start/End Period:** Enter the period range in `YYYYMMDD` format (e.g., `20241201`). The script will delete `CashFlow` records for `EntityType = 'Asset'` *between* these dates (inclusive).
-            4.  **Generate:** Click the 'Generate Script' button in Step 3.
-            5.  **Review & Download:** If successful, a `.sql` script performing the deletion (with counts before/after and transaction control) will be available. **Review the script VERY carefully before execution**, especially the `COMMIT`/`ROLLBACK` section.
+            4.  **Cleanup Scope:** Choose the scope for deletion:
+                *   `Actuals Only`: Deletes records matching the criteria **AND** where the `BookTypeKey` corresponds to `Lookup.Value.ValueID = 'Actual'`. Use this to preserve Budget data.
+                *   `All Book Types`: Deletes records matching the criteria regardless of Book Type (this was the previous default behavior).
+            5.  **Generate:** Click the 'Generate Script' button in Step 3.
+            6.  **Review & Download:** If successful, a `.sql` script performing the deletion (with counts before/after and transaction control) will be available. **Review the script VERY carefully before execution**, especially the `COMMIT`/`ROLLBACK` section and ensure the filter description in the script header matches the intended scope.
         """)
+    # --- AIM Cleanup Instructions (Unchanged) ---
     elif selected_operation == "AIM Data Cleanup":
          st.markdown("""
             **Instructions for AIM Data Cleanup:**
@@ -617,7 +650,7 @@ with st.expander("ℹ Instructions and Inputs", expanded=True):
     st.markdown("""
         **General Support:**
         *   *Developed by:* Monish & Sanju
-        *   *Version:* 1.6 (Specific PropMap SQL Format)
+        *   *Version:* 1.7 (DMG Cleanup Scope Option)
     """) # Updated version number
 
 st.divider()
@@ -630,6 +663,7 @@ uploaded_file = None
 dmg_client_db = None
 dmg_start_period = None
 dmg_end_period = None
+dmg_cleanup_scope = None # Initialize for DMG
 aim_db_name = None
 aim_period = None
 
@@ -650,7 +684,7 @@ if selected_operation == "Property Mapping":
          })
 
 elif selected_operation == "DMG Data Cleanup":
-    # Use session state to preserve input values across reruns *within the same operation*
+    # --- DMG Inputs (MODIFIED) ---
     dmg_client_db = st.text_input(
         "Client Database Name:",
         key="dmg_client_db_input",
@@ -658,7 +692,7 @@ elif selected_operation == "DMG Data Cleanup":
         placeholder="e.g., AegonDQSI",
         help="Enter the exact name of the database."
     )
-    st.session_state.dmg_client_db = dmg_client_db # Update session state on input change
+    st.session_state.dmg_client_db = dmg_client_db # Update session state
 
     col1, col2 = st.columns(2)
     with col1:
@@ -680,7 +714,26 @@ elif selected_operation == "DMG Data Cleanup":
         )
         st.session_state.dmg_end_period = dmg_end_period # Update
 
+    # NEW: Cleanup Scope Radio Button
+    dmg_cleanup_scope_options = ["Actuals Only", "All Book Types"]
+    # Find index of the current state value for the radio button
+    try:
+        scope_index = dmg_cleanup_scope_options.index(st.session_state.dmg_cleanup_scope)
+    except ValueError:
+        scope_index = 1 # Default to "All Book Types" if state is invalid
+
+    dmg_cleanup_scope = st.radio(
+        "Cleanup Scope:",
+        options=dmg_cleanup_scope_options,
+        index=scope_index, # Use index from session state
+        key="dmg_cleanup_scope_radio",
+        horizontal=True,
+        help="Choose whether to delete only 'Actual' book types or all matching records."
+    )
+    st.session_state.dmg_cleanup_scope = dmg_cleanup_scope # Update session state
+
 elif selected_operation == "AIM Data Cleanup":
+    # --- AIM Inputs (Unchanged) ---
     aim_db_name = st.text_input(
         "AIM Database Name:", key="aim_db_name_input",
         value=st.session_state.aim_db_name, # Bind
@@ -709,12 +762,12 @@ st.subheader("Step 3: Generate SQL Script")
 can_process = False
 if selected_operation == "Property Mapping" and uploaded_file is not None:
     can_process = True
-elif selected_operation == "DMG Data Cleanup" and dmg_client_db and dmg_start_period and dmg_end_period:
-     # Add basic format check for enablement, full validation happens on click
+elif selected_operation == "DMG Data Cleanup" and dmg_client_db and dmg_start_period and dmg_end_period and dmg_cleanup_scope: # Added scope check
+     # Basic format check for enablement
      if re.fullmatch(r"^\d{8}$", dmg_start_period) and re.fullmatch(r"^\d{8}$", dmg_end_period):
         can_process = True
 elif selected_operation == "AIM Data Cleanup" and aim_db_name and aim_period:
-     # Add basic format check for enablement
+     # Basic format check for enablement
      if re.fullmatch(r"^\d{4}[Mm][Tt][Hh]\d{2}$", aim_period):
         can_process = True
 
@@ -733,11 +786,20 @@ if process_button and can_process:
 
     with st.spinner(f"Processing '{selected_operation}'... Please wait."):
         if selected_operation == "Property Mapping":
-            process_property_mapping(uploaded_file) # Uses the modified functions
+            process_property_mapping(uploaded_file)
         elif selected_operation == "DMG Data Cleanup":
-             process_dmg_cleanup(dmg_client_db, dmg_start_period, dmg_end_period)
+             # Pass the selected scope from session state
+             process_dmg_cleanup(
+                 st.session_state.dmg_client_db,
+                 st.session_state.dmg_start_period,
+                 st.session_state.dmg_end_period,
+                 st.session_state.dmg_cleanup_scope # Pass the selected scope
+             )
         elif selected_operation == "AIM Data Cleanup":
-             process_aim_cleanup(aim_db_name, aim_period)
+             process_aim_cleanup(
+                 st.session_state.aim_db_name,
+                 st.session_state.aim_period
+             )
         # Add elif blocks for future operations
         else:
             st.warning(f"Processing logic for '{selected_operation}' is not implemented yet.")
@@ -771,7 +833,10 @@ if results_available_for_current_op:
             col2.metric("Rows Matching Filter", st.session_state.get('rows_filtered', 0))
             col3.metric("Mappings Processed", st.session_state.get('queries_generated', 0), help="Number of rows from filtered data processed for mapping checks/inserts.")
         elif selected_operation in ["DMG Data Cleanup", "AIM Data Cleanup"]:
-             st.metric("SQL Script Generated", "1 Block" if st.session_state.get('queries_generated', 0) > 0 else "0 Blocks", help="Indicates if the SQL script block was successfully generated.")
+             # Add scope detail for DMG Cleanup success message
+             scope_info = f" (Scope: {st.session_state.dmg_cleanup_scope})" if selected_operation == "DMG Data Cleanup" else ""
+             st.metric("SQL Script Generated", "1 Block" if st.session_state.get('queries_generated', 0) > 0 else "0 Blocks", help=f"Indicates if the SQL script block was successfully generated{scope_info}.")
+
 
         # --- SQL Preview ---
         st.subheader("Generated SQL Preview (First ~1000 chars)")
@@ -785,6 +850,11 @@ if results_available_for_current_op:
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         sanitized_operation = re.sub(r'\W+', '_', selected_operation) # Replace non-alphanumeric with underscore
         default_filename = f"{sanitized_operation}_Script_{timestamp}.sql"
+        # Add scope to DMG default filename
+        if selected_operation == "DMG Data Cleanup":
+            scope_tag = "_ActualsOnly" if st.session_state.dmg_cleanup_scope == "Actuals Only" else "_AllBookTypes"
+            default_filename = f"{sanitized_operation}{scope_tag}_Script_{timestamp}.sql"
+
 
         # Specific default and input field ONLY for Property Mapping
         if selected_operation == "Property Mapping":
@@ -807,7 +877,7 @@ if results_available_for_current_op:
                 download_filename += '.sql'
 
         else:
-            # For other operations, use the standard default filename generated earlier
+            # For other operations (DMG, AIM), use the standard default filename generated earlier
             download_filename = default_filename
             # Display the filename that will be used (read-only info)
             st.info(f"Download filename will be: `{download_filename}`")
@@ -867,4 +937,4 @@ elif not results_available_for_current_op:
 
 # --- Footer ---
 st.divider()
-st.caption(f"SQL Generator Tool | Current Operation: {selected_operation} | Version 1.6") # Updated version number
+st.caption(f"SQL Generator Tool | Current Operation: {selected_operation} | Version 1.7") # Updated version number
