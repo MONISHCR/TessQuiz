@@ -373,41 +373,14 @@ def generate_aim_cleanup_sql(aim_db, period):
 USE {safe_aim_db};
 GO
 
-PRINT '--- Before Deletion ---';
-SELECT COUNT(*) AS RecordCount_BeforeDelete
-FROM dbo.line_item li WITH (NOLOCK)
-WHERE li.item_typ_id IN (SELECT acct_id FROM dbo.account WITH (NOLOCK))
-  AND li.period = '{safe_period}';
-GO
+select *from line_item where item_typ_id in (select acct_id from account) and period = '{safe_period}' and bud_value IS NULL;
 
-PRINT '--- Performing Deletion ---';
-BEGIN TRAN T1_AIM_Cleanup;
+delete from line_item where item_typ_id in (select acct_id from account) and period = '{safe_period}' and bud_value IS NULL;
 
-DELETE FROM dbo.line_item
-WHERE item_typ_id IN (SELECT acct_id FROM dbo.account)
-  AND period = '{safe_period}';
+update line_item set act_value = null where item_typ_id in (select acct_id from account) and period = '{safe_period}' AND act_value IS NOT NULL and bud_value IS NOT NULL
 
-DECLARE @RowsDeleted_AIM INT = @@ROWCOUNT;
-PRINT 'Attempted to delete records. Rows affected: ' + CAST(@RowsDeleted_AIM AS VARCHAR);
+select *from line_item where item_typ_id in (select acct_id from account) and period = '{safe_period}';
 
--- !! IMPORTANT !! Review the count and affected rows before committing.
--- ROLLBACK TRAN T1_AIM_Cleanup;
--- PRINT 'Transaction Rolled Back. No changes were made.';
-
-COMMIT TRAN T1_AIM_Cleanup;
-PRINT 'Transaction Committed.';
-
-GO
-
-PRINT '--- After Deletion ---';
-SELECT COUNT(*) AS RecordCount_AfterDelete
-FROM dbo.line_item li WITH (NOLOCK)
-WHERE li.item_typ_id IN (SELECT acct_id FROM dbo.account WITH (NOLOCK))
-  AND li.period = '{safe_period}';
-GO
-
-PRINT '--- AIM Cleanup Script Complete ---';
-GO
 """
 
 def process_aim_cleanup(aim_db, period):
