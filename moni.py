@@ -84,9 +84,9 @@ def generate_sql_mapping_inserts(filtered_df, source_col, target_col, name_col):
     return "\n\n".join(insert_blocks)
 
 
-# --- Property Mapping Processing Function (Unchanged - Strict Format) ---
+# --- Property Mapping Processing Function (MODIFIED for confirmation dialog) ---
 def process_property_mapping(uploaded_file):
-    """Handles the entire process for the Property Mapping option."""
+    """Handles the entire process for the Property Mapping option, including confirmation for differing IDs."""
     st.session_state.processed_data = None
     st.session_state.error_message = None
     st.session_state.queries_generated = 0
@@ -104,9 +104,14 @@ def process_property_mapping(uploaded_file):
         COL_PROVIDER_HDR, COL_SOURCE_ID_HDR, COL_AIM_CODE_HDR,
         COL_AIM_NAME_HDR, COL_TARGET_ID_HDR, COL_EXT_ID_HDR
     ]
+    
+    # This placeholder is for messages during the main processing steps
+    status_placeholder = st.empty()
+    # This placeholder is specifically for the confirmation dialog UI
+    confirmation_ui_placeholder = st.container()
+
 
     try:
-        status_placeholder = st.empty()
         status_placeholder.info(f"Processing file: *{uploaded_file.name}*")
 
         file_content = io.BytesIO(uploaded_file.getvalue())
@@ -172,34 +177,134 @@ def process_property_mapping(uploaded_file):
 
         df = df.fillna('')
         st.session_state.rows_read = len(df)
-        status_placeholder.info(f"Read {st.session_state.rows_read} data rows. Applying filters...")
+        status_placeholder.info(f"Read {st.session_state.rows_read} data rows. Pre-processing data...")
 
         reverse_header_map = {v: k for k, v in col_indices.items()}
         df_processed = df.rename(columns=reverse_header_map)
 
-        df_processed[COL_SOURCE_ID_HDR] = df_processed[COL_SOURCE_ID_HDR].astype(str).str.strip()
-        df_processed[COL_AIM_CODE_HDR] = df_processed[COL_AIM_CODE_HDR].astype(str).str.strip()
-        df_processed[COL_EXT_ID_HDR] = df_processed[COL_EXT_ID_HDR].astype(str).str.strip()
-        df_processed[COL_AIM_NAME_HDR] = df_processed[COL_AIM_NAME_HDR].astype(str).str.strip()
-        df_processed[COL_TARGET_ID_HDR] = pd.to_numeric(df_processed[COL_TARGET_ID_HDR], errors='coerce')
+        # Basic type conversions and stripping
+        for col in [COL_SOURCE_ID_HDR, COL_AIM_CODE_HDR, COL_EXT_ID_HDR, COL_AIM_NAME_HDR, COL_PROVIDER_HDR]:
+            if col in df_processed.columns:
+                df_processed[col] = df_processed[col].astype(str).str.strip()
+        if COL_TARGET_ID_HDR in df_processed.columns:
+            df_processed[COL_TARGET_ID_HDR] = pd.to_numeric(df_processed[COL_TARGET_ID_HDR], errors='coerce')
 
-        filter_mask = (df_processed[COL_SOURCE_ID_HDR] != '')
-        filter_mask &= (df_processed[COL_SOURCE_ID_HDR] == df_processed[COL_AIM_CODE_HDR])
-        filter_mask &= (df_processed[COL_SOURCE_ID_HDR] == df_processed[COL_EXT_ID_HDR])
-        filter_mask &= df_processed[COL_TARGET_ID_HDR].notna()
+        # --- Logic for identifying strictly matching vs. potentially discrepant rows ---
+        base_valid_mask = (
+            (df_processed[COL_SOURCE_ID_HDR] != '') &
+            df_processed[COL_TARGET_ID_HDR].notna() &
+            (df_processed[COL_PROVIDER_HDR] != '') # Assuming provider should not be blank
+        )
+        
+        strict_match_conditions_mask = (
+            (df_processed[COL_SOURCE_ID_HDR] == df_processed[COL_AIM_CODE_HDR]) &
+            (df_processed[COL_SOURCE_ID_HDR] == df_processed[COL_EXT_ID_HDR])
+        )
 
-        filtered_df = df_processed[filter_mask].copy()
+        df_strict_matches = df_processed[base_valid_mask & strict_match_conditions_mask].copy()
+        df_potential_discrepancies = df_processed[base_valid_mask & ~strict_match_conditions_mask].copy()
+        
+        # --- Confirmation Dialog Logic ---
+        if not df_potential_discrepancies.empty and 'pm_confirmation_decision' not in st.session_state:
+            status_placeholder.empty() # Clear the general status message
+            with confirmation_ui_placeholder:
+                st.warning(f"Found {len(df_potential_discrepancies)} row(s) where `Source_Pty_Id` may not be identical to both `AIM Code` and `Ext_Id`.")
+                st.markdown("Please review these rows:")
+                display_cols = [COL_PROVIDER_HDR, COL_SOURCE_ID_HDR, COL_AIM_CODE_HDR, COL_AIM_NAME_HDR, COL_TARGET_ID_HDR, COL_EXT_ID_HDR]
+                st.dataframe(df_potential_discrepancies[display_cols])
+                st.markdown("**Do you want to include these specific rows in the SQL script generation?**")
+                st.caption("Rows where `Source_Pty_Id`, `AIM Code`, and `Ext_Id` are identical (and meet other criteria) will be processed regardless of this choice.")
 
-        if not filtered_df.empty:
-             filtered_df.loc[:, COL_TARGET_ID_HDR] = filtered_df[COL_TARGET_ID_HDR].astype(int)
+                col_yes, col_no, _ = st.columns([1,1,3]) # Adjust column ratios as needed
+                if col_yes.button("✅ Yes, include these rows", key="pm_confirm_yes", help="Include these reviewed rows in the script."):
+                    st.session_state.pm_confirmation_decision = "yes"
+                    st.session_state.pm_temp_processing_state = {
+                        "columns": list(df_processed.columns),
+                        "strict_matches_records": df_strict_matches.to_dict('records'),
+                        "potential_discrepancies_records": df_potential_discrepancies.to_dict('records')
+                    }
+                    confirmation_ui_placeholder.empty()
+                    st.rerun()
 
+                if col_no.button("❌ No, exclude these rows", key="pm_confirm_no", help="Exclude these reviewed rows from the script."):
+                    st.session_state.pm_confirmation_decision = "no"
+                    st.session_state.pm_temp_processing_state = {
+                        "columns": list(df_processed.columns),
+                        "strict_matches_records": df_strict_matches.to_dict('records'),
+                        # Discrepancies not needed if 'no', but store for consistency if logic changes
+                        "potential_discrepancies_records": df_potential_discrepancies.to_dict('records') 
+                    }
+                    confirmation_ui_placeholder.empty()
+                    st.rerun()
+            
+            # Stop further processing in this run; wait for user's decision via rerun
+            st.session_state.processed_data = None 
+            st.session_state.error_message = "User confirmation pending for rows with differing IDs."
+            st.session_state.queries_generated = 0
+            return
+
+        # --- Post-Confirmation or No-Discrepancy Path ---
+        confirmation_ui_placeholder.empty() # Ensure confirmation UI is cleared if we passed it or it wasn't needed
+        filtered_df_list = []
+
+        if 'pm_confirmation_decision' in st.session_state:
+            status_placeholder.info("Processing based on user confirmation...")
+            processing_state = st.session_state.get('pm_temp_processing_state')
+            if not processing_state:
+                st.error("Critical error: Processing state not found after confirmation. Please try generating the script again.")
+                st.session_state.error_message = "Internal error: Missing processing state."
+                # Clean up to prevent inconsistent state on next run
+                if 'pm_confirmation_decision' in st.session_state: del st.session_state.pm_confirmation_decision
+                return
+
+            cols_for_reconstruction = processing_state["columns"]
+            reconstructed_strict_matches = pd.DataFrame(processing_state["strict_matches_records"], columns=cols_for_reconstruction)
+            reconstructed_potential_discrepancies = pd.DataFrame(processing_state["potential_discrepancies_records"], columns=cols_for_reconstruction)
+
+            if not reconstructed_strict_matches.empty:
+                filtered_df_list.append(reconstructed_strict_matches)
+
+            if st.session_state.pm_confirmation_decision == "yes":
+                status_placeholder.info("User confirmed 'Yes' for differing rows. Including them.")
+                if not reconstructed_potential_discrepancies.empty:
+                    filtered_df_list.append(reconstructed_potential_discrepancies)
+            else: # Decision was "no"
+                status_placeholder.info("User confirmed 'No' for differing rows. Excluding them.")
+            
+            # Clean up session state for this confirmation cycle
+            del st.session_state.pm_confirmation_decision
+            if 'pm_temp_processing_state' in st.session_state: del st.session_state.pm_temp_processing_state
+        
+        else: # No discrepancies found initially, or confirmation path was not taken
+            status_placeholder.info("Processing strictly matching rows (no differing IDs found or confirmation not applicable).")
+            if not df_strict_matches.empty:
+                filtered_df_list.append(df_strict_matches)
+
+        if filtered_df_list:
+            filtered_df = pd.concat(filtered_df_list).drop_duplicates().reset_index(drop=True)
+        else:
+            filtered_df = pd.DataFrame(columns=REQUIRED_HEADERS) # Empty DF with correct columns
+
+        # Final validation and type conversion for Target_Pty_Id on the consolidated DataFrame
+        if not filtered_df.empty and COL_TARGET_ID_HDR in filtered_df.columns:
+            filtered_df[COL_TARGET_ID_HDR] = pd.to_numeric(filtered_df[COL_TARGET_ID_HDR], errors='coerce')
+            initial_count_before_dropna = len(filtered_df)
+            filtered_df.dropna(subset=[COL_TARGET_ID_HDR], inplace=True)
+            if len(filtered_df) < initial_count_before_dropna:
+                st.warning(f"{initial_count_before_dropna - len(filtered_df)} row(s) were removed due to invalid/empty Target_Pty_Id after consolidation.")
+            
+            if not filtered_df.empty:
+                 filtered_df.loc[:, COL_TARGET_ID_HDR] = filtered_df[COL_TARGET_ID_HDR].astype(int)
+        
         st.session_state.rows_filtered = len(filtered_df)
-        status_placeholder.info(f"Found {st.session_state.rows_filtered} rows matching filter criteria. Generating SQL...")
+        status_placeholder.info(f"Finalized {st.session_state.rows_filtered} rows for SQL generation. Generating SQL...")
 
         if not filtered_df.empty:
             sql_blocks = []
+            # Use original AIM Property Name from the filtered_df
             unique_property_names = filtered_df[COL_AIM_NAME_HDR].dropna().unique().tolist()
             valid_property_names = [name for name in unique_property_names if isinstance(name, str) and name.strip()]
+            
             sql_blocks.append(generate_sql_property_name_check(valid_property_names))
             sql_blocks.append(generate_sql_mapping_checks(filtered_df, COL_SOURCE_ID_HDR, COL_TARGET_ID_HDR))
             sql_blocks.append(generate_sql_mapping_inserts(filtered_df, COL_SOURCE_ID_HDR, COL_TARGET_ID_HDR, COL_AIM_NAME_HDR))
@@ -207,11 +312,12 @@ def process_property_mapping(uploaded_file):
 
             final_sql_script = "\n\n".join(sql_blocks)
             st.session_state.processed_data = final_sql_script
-            st.session_state.queries_generated = len(filtered_df)
+            st.session_state.queries_generated = len(filtered_df) # Number of insert blocks
             status_placeholder.success("SQL script generated successfully!")
         else:
-            status_placeholder.warning("No data rows matched the filter criteria. No SQL script generated.")
-            st.session_state.error_message = "No matching rows found for Property Mapping criteria."
+            status_placeholder.warning("No data rows remained after filtering and/or confirmation. No SQL script generated.")
+            if not st.session_state.error_message: # Don't overwrite a more specific error
+                 st.session_state.error_message = "No matching/confirmed rows found for Property Mapping."
             st.session_state.queries_generated = 0
 
     except Exception as e:
@@ -224,6 +330,7 @@ def process_property_mapping(uploaded_file):
         st.session_state.queries_generated = 0
         if 'status_placeholder' in locals() and status_placeholder:
              status_placeholder.error("Processing failed.")
+        confirmation_ui_placeholder.empty() # Clear confirmation UI on error too
 
 
 # --- DMG Data Cleanup Specific Functions --- (MODIFIED - Strict Templates) ---
@@ -310,7 +417,7 @@ inner join Entity E ON C.EntityKey = E.EntityKey
 WHERE E.EntityType = 'Asset' and C.Period between {start_period} and {end_period};
 
 select *
-from CashFlow C WITH
+from CashFlow C --WITH removed as it was likely a typo and invalid SQL here
 inner join Entity E ON C.EntityKey = E.EntityKey
 WHERE E.EntityType = 'Asset' and Period between {start_period} and {end_period};
 
@@ -413,7 +520,7 @@ def process_aim_cleanup(aim_db, period):
         if status_placeholder: status_placeholder.error("Processing failed.")
 
 
-# --- Streamlit App UI --- (Unchanged from v1.7)
+# --- Streamlit App UI ---
 st.set_page_config(page_title="SQL Generator Tool", layout="wide")
 
 # Initialize session state variables
@@ -428,11 +535,14 @@ defaults = {
     'dmg_client_db': "",
     'dmg_start_period': "",
     'dmg_end_period': "",
-    'dmg_cleanup_scope': "All Book Types", # Default scope
+    'dmg_cleanup_scope': "All Book Types",
     'aim_db_name': "",
     'aim_period': "",
     'uploaded_file_key': 0,
-    'sql_file_name_input': ""
+    'sql_file_name_input': "",
+    # Property Mapping Confirmation State
+    # 'pm_confirmation_decision': None, # e.g., 'yes', 'no' -> Handled by deletion/existence
+    # 'pm_temp_processing_state': None, # Stores dict with DFs for confirmation -> Handled by deletion/existence
 }
 for key, value in defaults.items():
     if key not in st.session_state:
@@ -450,13 +560,23 @@ operation_options = [
     "AIM Data Cleanup",
 ]
 
-def reset_state_on_operation_change():
-    for key in defaults:
-        st.session_state[key] = defaults[key]
-    st.session_state.uploaded_file_key += 1
-    pass
+# Keys for Property Mapping confirmation state that need reset
+PM_CONFIRMATION_STATE_KEYS = ['pm_confirmation_decision', 'pm_temp_processing_state']
 
-previous_operation = st.session_state.current_operation
+def reset_state_on_operation_change():
+    # Reset general state
+    for key in defaults: # This resets to initial defaults
+        st.session_state[key] = defaults[key]
+    st.session_state.uploaded_file_key += 1 # Force re-render of file uploader
+
+    # Specifically clear any lingering PM confirmation state if operation changes
+    for key_to_clear in PM_CONFIRMATION_STATE_KEYS:
+        if key_to_clear in st.session_state:
+            del st.session_state[key_to_clear]
+    pass # No return needed for on_change
+
+
+previous_operation = st.session_state.current_operation # Not actively used but good for debugging
 default_index = 0
 if st.session_state.current_operation in operation_options:
     default_index = operation_options.index(st.session_state.current_operation)
@@ -468,7 +588,7 @@ selected_operation = st.selectbox(
     key="operation_selector",
     on_change=reset_state_on_operation_change
 )
-st.session_state.current_operation = selected_operation
+st.session_state.current_operation = selected_operation # Update current operation tracking
 
 # --- Instructions & Template/Inputs ---
 with st.expander("ℹ Instructions and Inputs", expanded=True):
@@ -485,13 +605,15 @@ with st.expander("ℹ Instructions and Inputs", expanded=True):
             3.  **Template:** Download template below.
             4.  **Upload:** Use 'Browse files' in Step 2.
             5.  **Validation:** Checks for required headers.
-            6.  **Filtering Logic:** Rows processed if **all** conditions met:
+            6.  **Filtering Logic (Initial Strict):** Rows are considered for strict matching if **all** conditions met:
                 *   `Source_Pty_Id` == `AIM Code`
                 *   `Source_Pty_Id` == `Ext_Id`
                 *   `Source_Pty_Id` is **not blank**.
                 *   `Pty_iTarget_Pty_Idd` is a **valid number**.
-            7.  **Generate:** Click 'Generate Script' in Step 3.
-            8.  **Download:** `.sql` script generated matching the required strict format. Customize filename in Results.
+                *   `Provider` is **not blank**.
+            7.  **Confirmation for Differences:** If rows are found that are valid (non-blank Provider, Source_Pty_Id, valid Pty_iTarget_Pty_Idd) but where `Source_Pty_Id` is *not* identical to both `AIM Code` and `Ext_Id`, you will be shown these rows and asked to confirm (Yes/No) if they should be included in the script.
+            8.  **Generate:** Click 'Generate Script' in Step 3.
+            9.  **Download:** `.sql` script generated. Customize filename in Results.
         """)
         st.markdown("**Download Template:**")
         template_excel_bytes = get_template_excel()
@@ -529,8 +651,8 @@ with st.expander("ℹ Instructions and Inputs", expanded=True):
     st.markdown("""
         **General Support:**
         *   *Developed by:* Monish & Sanju
-        *   *Version:* 1.8 (DMG Strict Templates)
-    """) # Updated version number
+        *   *Version:* 1.9 (Property Mapping Confirmation Dialog)
+    """)
 
 st.divider()
 
@@ -549,25 +671,31 @@ if selected_operation == "Property Mapping":
     uploaded_file = st.file_uploader(
         f"Upload your completed Excel file (.xlsx, .xls)",
         type=['xlsx', 'xls'],
-        key=f"uploader_prop_map_{st.session_state.uploaded_file_key}",
+        key=f"uploader_prop_map_{st.session_state.uploaded_file_key}", # Key change forces reset
         help="Ensure the file follows the structure described in the instructions. Use the template."
     )
     if uploaded_file and uploaded_file.name != st.session_state.get('file_name_processed'):
+         # New file uploaded or re-uploaded, reset relevant state
          st.session_state.update({
              'processed_data': None, 'error_message': None, 'queries_generated': 0,
              'rows_read': 0, 'rows_filtered': 0,
-             'file_name_processed': None, 'sql_file_name_input': ""
+             'file_name_processed': None, # Will be set by process_property_mapping
+             'sql_file_name_input': ""
          })
+         # Crucially, reset PM confirmation state for the new file
+         for key_to_clear in PM_CONFIRMATION_STATE_KEYS:
+            if key_to_clear in st.session_state:
+                del st.session_state[key_to_clear]
 
 elif selected_operation == "DMG Data Cleanup":
     dmg_client_db = st.text_input(
         "Client Database Name:",
-        key="dmg_client_db_input",
+        key="dmg_client_db_input", # Ensure keys are unique if elements are conditionally rendered
         value=st.session_state.dmg_client_db,
         placeholder="e.g., AegonDQSI",
         help="Enter the exact name of the database."
     )
-    st.session_state.dmg_client_db = dmg_client_db
+    st.session_state.dmg_client_db = dmg_client_db # Persist input
 
     col1, col2 = st.columns(2)
     with col1:
@@ -590,10 +718,10 @@ elif selected_operation == "DMG Data Cleanup":
         st.session_state.dmg_end_period = dmg_end_period
 
     dmg_cleanup_scope_options = ["Actuals Only", "All Book Types"]
-    try:
+    try: # Robust index finding
         scope_index = dmg_cleanup_scope_options.index(st.session_state.dmg_cleanup_scope)
     except ValueError:
-        scope_index = 1 # Default to "All Book Types"
+        scope_index = 1 # Default to "All Book Types" if state is somehow invalid
 
     dmg_cleanup_scope = st.radio(
         "Cleanup Scope:",
@@ -634,7 +762,7 @@ elif selected_operation == "DMG Data Cleanup" and dmg_client_db and dmg_start_pe
      if re.fullmatch(r"^\d{8}$", dmg_start_period) and re.fullmatch(r"^\d{8}$", dmg_end_period):
         can_process = True
 elif selected_operation == "AIM Data Cleanup" and aim_db_name and aim_period:
-     if re.fullmatch(r"^\d{4}[Mm][Tt][Hh]\d{2}$", aim_period):
+     if re.fullmatch(r"^\d{4}[Mm][Tt][Hh]\d{2}$", aim_period.upper()): # Made AIM period check case-insensitive for MTH
         can_process = True
 
 process_button = st.button(
@@ -644,15 +772,22 @@ process_button = st.button(
 )
 
 if process_button and can_process:
+    # Ensure current operation is correctly tracked for result display
     st.session_state.current_operation = selected_operation
+    
     if selected_operation == "Property Mapping":
-        st.session_state.sql_file_name_input = ""
+        st.session_state.sql_file_name_input = "" # Reset custom filename input
+        # Crucially, reset PM confirmation state if "Generate Script" is clicked anew
+        for key_to_clear in PM_CONFIRMATION_STATE_KEYS:
+            if key_to_clear in st.session_state:
+                del st.session_state[key_to_clear]
 
+    # Spinner context should ideally wrap the call to the processing function
     with st.spinner(f"Processing '{selected_operation}'... Please wait."):
         if selected_operation == "Property Mapping":
             process_property_mapping(uploaded_file)
         elif selected_operation == "DMG Data Cleanup":
-             process_dmg_cleanup( # Passes the scope to use the correct template
+             process_dmg_cleanup(
                  st.session_state.dmg_client_db,
                  st.session_state.dmg_start_period,
                  st.session_state.dmg_end_period,
@@ -661,24 +796,36 @@ if process_button and can_process:
         elif selected_operation == "AIM Data Cleanup":
              process_aim_cleanup(
                  st.session_state.aim_db_name,
-                 st.session_state.aim_period
+                 st.session_state.aim_period # Pass the session state value
              )
-        else:
+        else: # Should not happen with current options
             st.warning(f"Processing logic for '{selected_operation}' is not implemented yet.")
             st.session_state.error_message = "Not implemented"
             st.session_state.processed_data = None
             st.session_state.queries_generated = 0
+            # Set file_name_processed for non-file operations for consistency in results display
             if uploaded_file: st.session_state.file_name_processed = uploaded_file.name
             else: st.session_state.file_name_processed = "Input Parameters"
+
 
 # --- Step 4: Results ---
 st.divider()
 st.subheader("📊 Results")
 
-results_available_for_current_op = (st.session_state.get('processed_data') is not None or st.session_state.get('error_message') is not None) and \
-                                   st.session_state.get('current_operation') == selected_operation
+# Check if results are available AND belong to the currently selected operation type
+# This prevents showing old results if the user changes operation type after generating a script.
+results_available_for_current_op = (
+    (st.session_state.get('processed_data') is not None or st.session_state.get('error_message') is not None) and
+    st.session_state.get('current_operation_for_results') == selected_operation # Use a dedicated key
+)
+# If process_button was clicked, update the operation for which results are stored
+if process_button and can_process:
+    st.session_state.current_operation_for_results = selected_operation
 
-if results_available_for_current_op:
+
+if (st.session_state.get('processed_data') or st.session_state.get('error_message')) and \
+   st.session_state.get('current_operation_for_results') == selected_operation:
+
     processed_identifier = st.session_state.get('file_name_processed', 'Input Parameters')
 
     if st.session_state.get('processed_data'):
@@ -687,8 +834,8 @@ if results_available_for_current_op:
         if selected_operation == "Property Mapping":
             col1, col2, col3 = st.columns(3)
             col1.metric("Rows Read from File", st.session_state.get('rows_read', 0))
-            col2.metric("Rows Matching Filter", st.session_state.get('rows_filtered', 0))
-            col3.metric("Mappings Processed", st.session_state.get('queries_generated', 0), help="Number of rows from filtered data processed for mapping checks/inserts.")
+            col2.metric("Rows Finalized for SQL", st.session_state.get('rows_filtered', 0)) # Renamed for clarity
+            col3.metric("Mapping Inserts Generated", st.session_state.get('queries_generated', 0), help="Number of potential INSERT blocks generated based on finalized rows.")
         elif selected_operation in ["DMG Data Cleanup", "AIM Data Cleanup"]:
              scope_info = f" (Scope: {st.session_state.dmg_cleanup_scope})" if selected_operation == "DMG Data Cleanup" else ""
              st.metric("SQL Script Generated", "1 Block" if st.session_state.get('queries_generated', 0) > 0 else "0 Blocks", help=f"Indicates if the SQL script block was successfully generated{scope_info}.")
@@ -700,27 +847,33 @@ if results_available_for_current_op:
         st.subheader("Download Script")
 
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        sanitized_operation = re.sub(r'\W+', '_', selected_operation)
-        default_filename = f"{sanitized_operation}_Script_{timestamp}.sql"
+        sanitized_operation = re.sub(r'\W+', '_', selected_operation) # Sanitize for filename
+        default_filename_base = f"{sanitized_operation}_Script_{timestamp}"
+        
         if selected_operation == "DMG Data Cleanup":
             scope_tag = "_ActualsOnly" if st.session_state.dmg_cleanup_scope == "Actuals Only" else "_AllBookTypes"
-            default_filename = f"{sanitized_operation}{scope_tag}_Script_{timestamp}.sql"
+            default_filename_base = f"{sanitized_operation}{scope_tag}_Script_{timestamp}"
 
         if selected_operation == "Property Mapping":
             default_prop_map_filename = f"Integrations_DF_ARES_Additional_Property_Mapping_PME-XXXXXX_{datetime.now().strftime('%Y%m%d')}.sql"
-            current_filename_value = st.session_state.get('sql_file_name_input') or default_prop_map_filename
+            # Use session state for text input to preserve edits
+            current_filename_value = st.session_state.get('sql_file_name_input_val', default_prop_map_filename)
             user_filename = st.text_input(
                 "Enter desired SQL file name (.sql will be added if missing):",
                 value=current_filename_value,
-                key="sql_file_name_input",
+                key="sql_file_name_input_val_widget", # Unique key for the widget
+                on_change=lambda: st.session_state.update(sql_file_name_input_val=st.session_state.sql_file_name_input_val_widget), # Persist changes
                 help="Suggested format: Integrations_DF_ARES_Additional_Property_Mapping_PME-XXXXXX_YYYYMMDD.sql. Replace XXXXXX as needed."
             )
+            st.session_state.sql_file_name_input = user_filename # Store for download button
+
             download_filename = user_filename if user_filename else default_prop_map_filename
             if not download_filename.lower().endswith('.sql'):
                 download_filename += '.sql'
         else:
-            download_filename = default_filename
+            download_filename = f"{default_filename_base}.sql"
             st.info(f"Download filename will be: `{download_filename}`")
+
 
         st.download_button(
             label=f"📥 Download Full SQL Script ({download_filename})",
@@ -732,35 +885,43 @@ if results_available_for_current_op:
 
     elif st.session_state.get('error_message'):
         error_msg = st.session_state.error_message
-        if selected_operation == "Property Mapping" and "No matching rows" in error_msg:
-            st.warning(f"⚠️ No data rows matched the filter criteria for **{selected_operation}** in file **{processed_identifier}**. No SQL script was generated.")
+        if selected_operation == "Property Mapping" and "User confirmation pending" in error_msg:
+            st.info(f"ℹ️ Action Required for **{selected_operation}**: Please respond to the confirmation prompt above regarding rows with differing IDs.")
+            # Metrics might not be fully relevant here, or show partial progress
+            col1, col2 = st.columns(2)
+            col1.metric("Rows Read from File", st.session_state.get('rows_read', 0))
+            col2.metric("Rows Awaiting Confirmation", "See prompt")
+        elif selected_operation == "Property Mapping" and ("No matching/confirmed rows" in error_msg or "No data rows remained" in error_msg):
+            st.warning(f"⚠️ No data rows matched the filter criteria or were confirmed for **{selected_operation}** in file **{processed_identifier}**. No SQL script was generated.")
             col1, col2, col3 = st.columns(3)
             col1.metric("Rows Read from File", st.session_state.get('rows_read', 0))
-            col2.metric("Rows Matching Filter", 0)
-            col3.metric("Mappings Processed", 0)
+            col2.metric("Rows Finalized for SQL", 0)
+            col3.metric("Mapping Inserts Generated", 0)
         elif selected_operation in ["DMG Data Cleanup", "AIM Data Cleanup"] and "Input validation failed" in error_msg:
              st.error(f"❌ Script generation failed for **{selected_operation}** due to invalid inputs.")
              st.error(f"Error details: {error_msg}")
              st.info("Please correct the inputs in Step 2 and try generating the script again.")
-        elif error_msg != "Not implemented":
+        elif error_msg != "Not implemented": # General errors
              st.error(f"❌ Processing failed for **{selected_operation}** using **{processed_identifier}**.")
              st.error(f"Error: {error_msg}")
-             if selected_operation == "Property Mapping" and st.session_state.get('rows_read', 0) > 0:
+             if selected_operation == "Property Mapping" and st.session_state.get('rows_read', 0) > 0 :
+                 # Show read rows even on error if applicable
                  col1, col2, col3 = st.columns(3)
                  col1.metric("Rows Read", st.session_state.get('rows_read', 0))
-                 col2.metric("Rows Matching Filter", "N/A due to error")
-                 col3.metric("Mappings Processed", "N/A due to error")
-    else:
-       st.info("Processing attempted, but no data or error message was recorded. Please try again.")
+                 col2.metric("Rows Finalized", "N/A (error)")
+                 col3.metric("Mapping Inserts", "N/A (error)")
+    # else: No data and no error, but results_available_for_current_op was true (e.g. cleared error)
+    # This case should be rare given the logic.
 
-elif not results_available_for_current_op:
-    if st.session_state.get('current_operation') and st.session_state.current_operation != selected_operation and \
-       (st.session_state.get('processed_data') or st.session_state.get('error_message')):
-        st.info(f"Results displayed previously were for '{st.session_state.current_operation}'.")
-        st.info(f"Provide inputs for '{selected_operation}' and click 'Generate Script' above to see results for the current selection.")
-    else:
-        st.info("Select an operation, provide inputs, and click 'Generate Script' in Step 3 to see results here.")
+# If no results are shown because they belong to a *different* operation than selected
+elif (st.session_state.get('processed_data') or st.session_state.get('error_message')) and \
+     st.session_state.get('current_operation_for_results') != selected_operation:
+    st.info(f"Results previously displayed were for '{st.session_state.get('current_operation_for_results')}'.")
+    st.info(f"To see results for '{selected_operation}', please provide inputs and click 'Generate Script'.")
+else: # No results processed yet at all, or state was cleared
+    st.info("Select an operation, provide inputs, and click 'Generate Script' in Step 3 to see results here.")
+
 
 # --- Footer ---
 st.divider()
-st.caption(f"SQL Generator Tool | Current Operation: {selected_operation} | Version 1.8") # Updated version number
+st.caption(f"SQL Generator Tool | Current Operation: {selected_operation} | Version 1.9")
